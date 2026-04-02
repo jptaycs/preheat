@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preheat Scheduler – Pilot</title>
+<style>
+:root {
+  --bg:         #0C0E14;
+  --s1:         #141720;
+  --s2:         #1C2030;
+  --s3:         #242840;
+  --border:     #2A2F45;
+  --blue:       #3B8EF0;
+  --blue-d:     #1E4A8A;
+  --blue-g:     rgba(59,142,240,.15);
+  --orange:     #F5891E;
+  --orange-d:   #7A4410;
+  --orange-g:   rgba(245,137,30,.15);
+  --green:      #2ED47A;
+  --green-d:    #154D33;
+  --red:        #F05252;
+  --red-d:      #6B1E1E;
+  --yellow:     #F5C842;
+  --text:       #EEF0F6;
+  --t2:         #8B93A8;
+  --t3:         #555E78;
+  --r-sm:       10px;
+  --r-md:       16px;
+  --r-lg:       24px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #06080D;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+/* ── OUTER WRAPPER ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.proto-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+/* ── PHONE FRAME ── */
+.phone {
+  width: 375px;
+  height: 780px;
+  background: var(--bg);
+  border-radius: 50px;
+  border: 1.5px solid #262B40;
+  box-shadow:
+    0 0 0 6px #0A0C11,
+    0 0 0 7.5px #1C2035,
+    0 40px 100px rgba(0,0,0,.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── SCREEN SYSTEM ── */
+.screen {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* ── TRANSITIONS ── */
+.screen { animation: fadeIn .18s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ── STATUS BAR ── */
+.sb {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.sb-r { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+
+/* ── SCROLLABLE BODY ── */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.body::-webkit-scrollbar { display: none; }
+
+/* ── BOTTOM NAV ── */
+.bnav {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 10px 8px 22px;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bn-ico { font-size: 22px; opacity: .4; position: relative; }
+.bn.on .bn-ico { opacity: 1; }
+.bn-lbl { font-size: 10px; font-weight: 500; color: var(--t2); }
+.bn.on .bn-lbl { color: var(--blue); }
+.bn-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--blue); }
+
+/* ── BACK ROW ── */
+.back-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px 16px;
+  cursor: pointer;
+}
+.back-ico { font-size: 20px; color: var(--t2); }
+.back-title { font-size: 18px; font-weight: 800; }
+
+/* ── SHARED ── */
+.px { padding: 0 20px; }
+.pt { padding-top: 10px; }
+.mt-xs { margin-top: 8px; }
+.mt-sm { margin-top: 12px; }
+.mt { margin-top: 16px; }
+.mt-lg { margin-top: 24px; }
+
+.row { display: flex; align-items: center; gap: 10px; }
+.sp { flex: 1; }
+
+.card {
+  background: var(--s1);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  padding: 18px;
+}
+.sec { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--t3); margin-bottom: 8px; }
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── PILL ── */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 99px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.p-green  { background: var(--green-d);  color: var(--green);  } .p-green  .pill-dot { background: var(--green);  }
+.p-orange { background: var(--orange-d); color: var(--orange); } .p-orange .pill-dot { background: var(--orange); }
+.p-red    { background: var(--red-d);    color: var(--red);    } .p-red    .pill-dot { background: var(--red);    }
+.p-blue   { background: var(--blue-d);   color: var(--blue);   } .p-blue   .pill-dot { background: var(--blue);   }
+.p-gray   { background: var(--s3);       color: var(--t2);     } .p-gray   .pill-dot { background: var(--t3);    }
+
+/* ── BADGE ── */
+.badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: .06em; text-transform: uppercase; }
+.b-green  { background: var(--green-d);  color: var(--green);  }
+.b-orange { background: var(--orange-d); color: var(--orange); }
+.b-red    { background: var(--red-d);    color: var(--red);    }
+.b-blue   { background: var(--blue-d);   color: var(--blue);   }
+.b-gray   { background: var(--s3);       color: var(--t2);     }
+
+/* ── ALERT ── */
+.alert { border-radius: var(--r-md); padding: 13px 15px; display: flex; align-items: flex-start; gap: 11px; border: 1px solid; }
+.a-red    { background: var(--red-d);    border-color: var(--red);    }
+.a-orange { background: var(--orange-d); border-color: var(--orange); }
+.a-blue   { background: var(--blue-d);   border-color: var(--blue);   }
+.a-green  { background: var(--green-d);  border-color: var(--green);  }
+.a-ico { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.a-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.a-msg   { font-size: 12px; color: var(--t2); line-height: 1.5; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; cursor: pointer; width: 100%;
+  font-family: inherit; font-weight: 600;
+  border-radius: var(--r-md);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .1s, opacity .1s;
+
+}
+.btn:active { transform: scale(.97); opacity: .9; }
+.btn-primary { background: linear-gradient(135deg,#3B8EF0,#2264C2); color: #fff; font-size: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(59,142,240,.35); }
+.btn-orange  { background: linear-gradient(135deg,#F5891E,#C05E0A); color: #fff; font-size: 15px; padding: 16px; box-shadow: 0 4px 20px rgba(245,137,30,.3); }
+.btn-danger  { background: var(--red-d); border: 1.5px solid var(--red); color: var(--red); font-size: 14px; padding: 15px; }
+.btn-ghost   { background: transparent; border: 1.5px solid var(--border); color: var(--t2); font-size: 14px; padding: 14px; }
+.btn-sm      { font-size: 12px; padding: 9px 14px; width: auto; border-radius: 10px; }
+
+/* ── INPUT ── */
+.inp-group { margin-bottom: 14px; }
+.inp-lbl { font-size: 11px; font-weight: 700; color: var(--t2); margin-bottom: 5px; letter-spacing: .06em; text-transform: uppercase; }
+.inp {
+  background: var(--s2); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); padding: 14px 15px;
+  color: var(--text); font-size: 15px; width: 100%;
+  display: flex; align-items: center; gap: 10px; cursor: text;
+}
+.inp.focused { border-color: var(--blue); }
+.inp-ph { color: var(--t3); }
+.inp-v  { color: var(--text); font-weight: 500; }
+
+/* ── STAT BOX ── */
+.stat-row { display: flex; gap: 10px; }
+.sbox {
+  flex: 1; background: var(--s2);
+  border-radius: var(--r-sm); border: 1px solid var(--border);
+  padding: 13px 11px; display: flex; flex-direction: column; gap: 3px;
+}
+.sbox-lbl { font-size: 10px; color: var(--t3); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sbox-val { font-size: 17px; font-weight: 800; color: var(--text); }
+.sbox-sub { font-size: 11px; color: var(--t2); }
+
+/* ── PROGRESS BAR ── */
+.pbar { height: 6px; background: var(--s3); border-radius: 99px; overflow: hidden; }
+.pfill { height: 100%; border-radius: 99px; }
+
+/* ── TOGGLE ── */
+.tog-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.tog-row:last-child { border-bottom: none; }
+.tog-track { width: 44px; height: 26px; border-radius: 99px; background: var(--blue); position: relative; flex-shrink: 0; cursor: pointer; }
+.tog-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 3px; right: 3px; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.tog-off .tog-track { background: var(--s3); }
+.tog-off .tog-thumb { right: auto; left: 3px; }
+
+/* ── NOTIF ITEM ── */
+.nitem { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.nitem:last-child { border-bottom: none; }
+.nico { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.nbody { flex: 1; }
+.ntitle { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.nmsg   { font-size: 12px; color: var(--t2); line-height: 1.5; }
+.ntime  { font-size: 11px; color: var(--t3); margin-top: 3px; }
+.ndot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+/* ── QUEUE ITEM ── */
+.qi {
+  display: flex; background: var(--s1);
+  border-radius: var(--r-md); border: 1.5px solid var(--border);
+  overflow: hidden; margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.qi:active { opacity: .9; }
+.qi-pos {
+  width: 50px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  border-right: 1px solid var(--border); padding: 14px 0; flex-shrink: 0;
+}
+.qi-num { font-size: 20px; font-weight: 800; }
+.qi-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--t3); letter-spacing: .04em; }
+.qi-body { flex: 1; padding: 13px; }
+.qi-tail { font-size: 16px; font-weight: 800; }
+.qi-meta { font-size: 12px; color: var(--t2); margin-top: 2px; }
+.qi-times { display: flex; gap: 14px; margin-top: 8px; }
+.qt-lbl { font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .05em; }
+.qt-val { font-size: 13px; font-weight: 700; margin-top: 1px; }
+.qi-mine { border-color: var(--blue); background: linear-gradient(135deg,#12203F,#182848); box-shadow: 0 0 0 1px var(--blue-d), 0 4px 20px var(--blue-g); }
+
+/* ── TIMELINE ── */
+.tl { display: flex; flex-direction: column; }
+.tl-item { display: flex; gap: 12px; }
+.tl-l { display: flex; flex-direction: column; align-items: center; width: 32px; flex-shrink: 0; }
+.tl-dot { width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid; background: var(--bg); flex-shrink: 0; z-index: 1; margin-top: 2px; }
+.tl-line { width: 2px; flex: 1; min-height: 16px; margin: 3px 0; }
+.tl-b { flex: 1; padding-bottom: 18px; }
+.tl-time { font-size: 11px; font-weight: 700; color: var(--t2); margin-bottom: 4px; letter-spacing: .03em; }
+.tl-card { background: var(--s2); border-radius: var(--r-sm); border: 1px solid var(--border); padding: 11px 13px; }
+.tl-head { font-size: 13px; font-weight: 700; }
+.tl-sub  { font-size: 12px; color: var(--t2); margin-top: 2px; }
+
+/* ── CHIP ROW ── */
+.chip-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; scrollbar-width: none; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  background: var(--s2); border: 1.5px solid var(--border);
+  border-radius: 99px; padding: 7px 14px;
+  font-size: 12px; font-weight: 600; color: var(--t2);
+  white-space: nowrap; flex-shrink: 0; cursor: pointer;
+}
+.chip.on { background: var(--blue-d); border-color: var(--blue); color: var(--blue); }
+
+/* ── AVATAR ── */
+.av { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#1E4A8A,#3B8EF0); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.av-lg { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg,#1E3D7A,#3B8EF0); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; border: 3px solid var(--blue); box-shadow: 0 0 0 6px var(--blue-g); }
+
+/* ── COUNTDOWN RING ── */
+.cring { width: 130px; height: 130px; position: relative; margin: 0 auto; }
+.cring svg { transform: rotate(-90deg); }
+.cring circle { fill: none; stroke-width: 7; stroke-linecap: round; }
+.cring .trk { stroke: var(--s3); }
+.cring .fill { stroke: var(--orange); stroke-dasharray: 364; stroke-dashoffset: 100; transition: stroke-dashoffset 1s linear; }
+.ctext { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+.cnum { font-size: 28px; font-weight: 900; color: var(--orange); line-height: 1; }
+.cunit { font-size: 11px; color: var(--t2); font-weight: 600; margin-top: 2px; }
+
+/* ── HEAT GAUGE ── */
+.hgauge { width: 140px; height: 140px; position: relative; margin: 0 auto; }
+.hgauge svg { transform: rotate(-90deg); }
+.hgauge circle { fill: none; stroke-width: 10; }
+.hgauge .trk { stroke: var(--s3); }
+.hgauge .fill { stroke: url(#hg); stroke-dasharray: 376; stroke-dashoffset: 103; stroke-linecap: round; }
+.htext { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+
+/* ── TEMP BAR ── */
+.tbar { background: var(--s3); border-radius: 99px; height: 7px; overflow: hidden; margin-top: 8px; }
+.tfill { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#2264C2,#F5891E,#F05252); }
+
+/* ── SPLASH ── */
+#s-splash {
+  background: radial-gradient(ellipse at 50% 35%, #1A3564 0%, #0C0E14 65%);
+}
+.splash-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; position: relative; overflow: hidden; }
+.sglow { position: absolute; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(59,142,240,.2) 0%, transparent 70%); top: 22%; left: 50%; transform: translateX(-50%); pointer-events: none; }
+.sring { position: absolute; border-radius: 50%; border: 1px solid rgba(59,142,240,.14); top: 50%; left: 50%; transform: translate(-50%,-50%); }
+.sring-1 { width: 130px; height: 130px; animation: rp 3s ease-in-out infinite; }
+.sring-2 { width: 180px; height: 180px; animation: rp 3s ease-in-out .5s infinite; }
+.sring-3 { width: 230px; height: 230px; animation: rp 3s ease-in-out 1s infinite; }
+@keyframes rp { 0%,100%{opacity:.14;transform:translate(-50%,-50%) scale(1);} 50%{opacity:.05;transform:translate(-50%,-50%) scale(1.07);} }
+.logo-box { width: 80px; height: 80px; background: linear-gradient(135deg,#1E3D7A,#2D6AC5); border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 8px 32px rgba(59,142,240,.4); position: relative; z-index: 1; }
+.logo-name { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-top: 14px; position: relative; z-index: 1; }
+.logo-name span { color: var(--blue); }
+.logo-tag  { font-size: 11px; color: var(--t2); letter-spacing: .14em; text-transform: uppercase; margin-top: 5px; position: relative; z-index: 1; }
+.pbar-wrap { margin-top: 60px; position: relative; z-index: 1; width: 170px; }
+.pbar-track { height: 3px; background: var(--s3); border-radius: 99px; overflow: hidden; }
+.pbar-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--blue),var(--orange)); animation: loadbar 2.4s ease forwards; }
+@keyframes loadbar { from { width: 0%; } to { width: 100%; } }
+.ldots { display: flex; gap: 6px; justify-content: center; margin-top: 16px; }
+.ld { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+.ld:nth-child(1){opacity:.25;} .ld:nth-child(2){opacity:.55;} .ld:nth-child(3){opacity:1;}
+
+/* ── CONFIRM SCREEN HEADER ── */
+#s-confirm { background: linear-gradient(180deg, rgba(240,82,82,.08) 0%, var(--bg) 35%); }
+
+/* ── NOTIFICATION UNREAD DOT ── */
+.unreads { position: absolute; top: 0; right: -3px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; border: 1.5px solid var(--s1); }
+
+/* ── INTERACTIVITY HINT ── */
+.hint { font-size: 10px; color: var(--t3); text-align: center; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="proto-label">Preheat Scheduler · Pilot · Interactive Prototype</div>
+
+  <div class="phone">
+
+    <!-- ════════════════════════════════
+         S C R E E N S
+    ════════════════════════════════ -->
+
+    <!-- ── SPLASH ── -->
+    <div class="screen active" id="s-splash">
+      <div class="splash-wrap">
+        <div class="sglow"></div>
+        <div class="sring sring-1"></div>
+        <div class="sring sring-2"></div>
+        <div class="sring sring-3"></div>
+
+        <div class="logo-box">✈️</div>
+        <div class="logo-name">Pre<span>heat</span></div>
+        <div class="logo-tag">Aviation Scheduler</div>
+
+        <div class="pbar-wrap">
+          <div style="font-size:11px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;text-align:center;margin-bottom:12px;">Initializing</div>
+          <div class="pbar-track"><div class="pbar-fill"></div></div>
+          <div class="ldots" style="margin-top:14px;">
+            <div class="ld"></div><div class="ld"></div><div class="ld"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:0 0 32px;text-align:center;">
+        <button class="btn btn-primary" style="width:calc(100% - 40px);margin:0 auto;" onclick="go('s-login')">
+          Get Started →
+        </button>
+        <div style="font-size:11px;color:var(--t3);margin-top:12px;">v1.0.0 · Secure Aviation Network</div>
+      </div>
+    </div><!-- /splash -->
+
+
+    <!-- ── LOGIN ── -->
+    <div class="screen" id="s-login">
+      <div class="sb"><span>09:41</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body px pt">
+        <div style="text-align:center;padding:24px 0 20px;">
+          <div class="logo-box" style="width:56px;height:56px;border-radius:18px;font-size:26px;margin:0 auto;box-shadow:0 4px 20px rgba(59,142,240,.3);">✈️</div>
+          <div style="font-size:22px;font-weight:800;margin-top:12px;">Welcome back</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:4px;">Sign in to your pilot account</div>
+        </div>
+
+        <div style="text-align:center;margin-bottom:22px;">
+          <span class="pill p-blue">✈ Pilot Role</span>
+        </div>
+
+        <div class="inp-group">
+          <div class="inp-lbl">✉ Email Address</div>
+          <div class="inp focused"><span class="inp-v">pilot@airbase.org</span></div>
+        </div>
+        <div class="inp-group">
+          <div class="inp-lbl">🔒 Password</div>
+          <div class="inp"><span class="inp-v">••••••••</span><span class="sp"></span><span style="font-size:12px;color:var(--blue);">Show</span></div>
+        </div>
+        <div style="text-align:right;margin-bottom:20px;"><span style="font-size:12px;color:var(--blue);font-weight:600;">Forgot password?</span></div>
+
+        <button class="btn btn-primary" onclick="go('s-dashboard')">Sign In</button>
+        <div style="position:relative;margin:18px 0;text-align:center;">
+          <div class="divider"></div>
+          <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);padding:0 12px;font-size:12px;color:var(--t3);">or</span>
+        </div>
+        <button class="btn btn-ghost" onclick="go('s-dashboard')">Create Account</button>
+
+        <div style="text-align:center;margin-top:24px;">
+          <div style="font-size:38px;cursor:pointer;" onclick="go('s-dashboard')">👆</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:6px;">Use biometric login</div>
+        </div>
+      </div>
+    </div><!-- /login -->
+
+
+    <!-- ── DASHBOARD ── -->
+    <div class="screen" id="s-dashboard">
+      <div class="sb"><span>09:41</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <div class="px pt">
+          <!-- Greeting -->
+          <div class="row" style="margin-bottom:18px;">
+            <div>
+              <div style="font-size:13px;color:var(--t2);">Good morning ☀️</div>
+              <div style="font-size:20px;font-weight:800;margin-top:2px;">Capt. Marcus Reid</div>
+            </div>
+            <div class="sp"></div>
+            <div style="position:relative;cursor:pointer;" onclick="go('s-profile')">
+              <div class="av">MR</div>
+              <div style="position:absolute;top:0;right:0;width:10px;height:10px;background:var(--red);border-radius:50%;border:2px solid var(--bg);"></div>
+            </div>
+          </div>
+
+          <!-- Confirm alert banner -->
+          <div class="alert a-orange" style="cursor:pointer;" onclick="go('s-confirm')">
+            <div class="a-ico">⏰</div>
+            <div style="flex:1;">
+              <div class="a-title" style="color:var(--orange);">Confirmation Required</div>
+              <div class="a-msg">Your flight departs in 28 min. Tap to confirm.</div>
+            </div>
+            <div style="font-size:20px;color:var(--orange);">›</div>
+          </div>
+
+          <!-- Flight card -->
+          <div style="background:linear-gradient(135deg,#12213F,#1C2F56);border-radius:var(--r-lg);border:1.5px solid var(--blue-d);padding:20px;margin-top:14px;box-shadow:0 4px 24px var(--blue-g);">
+            <div class="row" style="margin-bottom:14px;">
+              <div style="font-size:24px;font-weight:900;letter-spacing:-.5px;">N4721B</div>
+              <div class="sp"></div>
+              <div class="pill p-orange"><div class="pill-dot"></div>Confirm Required</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">🔥 Preheat</div><div style="font-size:18px;font-weight:800;">10:15 AM</div></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">✈️ Departs</div><div style="font-size:18px;font-weight:800;">10:45 AM</div></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">📍 Queue Pos.</div><div style="font-size:18px;font-weight:800;color:var(--blue);">#3</div></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">🌡 Temp</div><div style="font-size:18px;font-weight:800;">-12°C</div></div>
+            </div>
+            <div class="divider"></div>
+            <button class="btn btn-orange" style="font-size:14px;padding:14px;" onclick="go('s-confirm')">Confirm My Attendance →</button>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="mt">
+            <div class="sec">Quick Actions</div>
+            <div class="stat-row">
+              <div class="sbox" style="align-items:center;padding:16px 8px;cursor:pointer;" onclick="go('s-request')">
+                <div style="font-size:28px;">🔥</div>
+                <div style="font-size:12px;font-weight:700;margin-top:6px;">Request</div>
+                <div style="font-size:11px;color:var(--t3);">Preheat</div>
+              </div>
+              <div class="sbox" style="align-items:center;padding:16px 8px;cursor:pointer;" onclick="go('s-queue')">
+                <div style="font-size:28px;">📋</div>
+                <div style="font-size:12px;font-weight:700;margin-top:6px;">View</div>
+                <div style="font-size:11px;color:var(--t3);">Queue</div>
+              </div>
+              <div class="sbox" style="align-items:center;padding:16px 8px;cursor:pointer;" onclick="go('s-track')">
+                <div style="font-size:28px;">📊</div>
+                <div style="font-size:12px;font-weight:700;margin-top:6px;">Track</div>
+                <div style="font-size:11px;color:var(--t3);">Status</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent -->
+          <div class="mt">
+            <div class="sec">Recent Activity</div>
+            <div class="nitem" style="cursor:pointer;" onclick="go('s-notifs')">
+              <div class="nico" style="background:var(--blue-d);">📅</div>
+              <div class="nbody">
+                <div class="ntitle">Schedule assigned – N4721B</div>
+                <div class="nmsg">Preheat at 10:15 AM (adjusted +30 min)</div>
+                <div class="ntime">Today · 8:52 AM</div>
+              </div>
+            </div>
+            <div class="nitem" style="border-bottom:none;cursor:pointer;" onclick="go('s-notifs')">
+              <div class="nico" style="background:var(--green-d);">✅</div>
+              <div class="nbody">
+                <div class="ntitle">Preheat completed – N8834C</div>
+                <div class="nmsg">Aircraft was ready at 7:30 AM</div>
+                <div class="ntime">Yesterday · 7:34 AM</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn on" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div><div class="bn-dot"></div></div>
+        <div class="bn" onclick="go('s-queue')"><div class="bn-ico">📋</div><div class="bn-lbl">Queue</div></div>
+        <div class="bn" onclick="go('s-notifs')"><div class="bn-ico" style="position:relative;">🔔<div class="unreads"></div></div><div class="bn-lbl">Alerts</div></div>
+        <div class="bn" onclick="go('s-profile')"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div></div>
+      </div>
+    </div><!-- /dashboard -->
+
+
+    <!-- ── REQUEST PREHEAT ── -->
+    <div class="screen" id="s-request">
+      <div class="sb"><span>09:41</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <div class="back-row" onclick="go('s-dashboard')">
+          <div class="back-ico">←</div>
+          <div class="back-title">Request Preheat</div>
+        </div>
+
+        <div class="px">
+          <!-- Confirmation result (shown pre-filled to show post-submit state) -->
+          <div style="background:linear-gradient(135deg,#142E1A,#1A3D22);border-radius:var(--r-md);border:1.5px solid var(--green);padding:15px;margin-bottom:16px;">
+            <div class="row" style="margin-bottom:6px;"><div style="font-size:18px;">✅</div><div style="font-size:14px;font-weight:700;color:var(--green);">Schedule Confirmed</div></div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:10px;">Placed in queue. Preheat time adjusted based on current demand.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><div style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">🔥 Preheat</div><div style="font-size:16px;font-weight:800;color:var(--green);margin-top:2px;">10:15 AM</div></div>
+              <div><div style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📍 Position</div><div style="font-size:16px;font-weight:800;color:var(--blue);margin-top:2px;">#3 in queue</div></div>
+            </div>
+          </div>
+
+          <div class="alert a-blue" style="margin-bottom:16px;">
+            <div class="a-ico">ℹ️</div>
+            <div><div class="a-msg">Your schedule may be adjusted based on current queue demand and runway availability.</div></div>
+          </div>
+
+          <div class="sec">Flight Details</div>
+          <div class="inp-group">
+            <div class="inp-lbl">✈ Aircraft Tail Number</div>
+            <div class="inp focused"><span class="inp-v" style="font-size:17px;font-weight:700;letter-spacing:.1em;">N4721B</span></div>
+          </div>
+          <div class="inp-group">
+            <div class="inp-lbl">📅 Departure Date</div>
+            <div class="inp"><span class="inp-v">April 2, 2026</span><span class="sp"></span><span style="color:var(--t3);">📅</span></div>
+          </div>
+          <div class="inp-group">
+            <div class="inp-lbl">🕐 Desired Flight Time</div>
+            <div class="inp"><span class="inp-v">10:45 AM</span><span class="sp"></span><span style="color:var(--t3);">🕐</span></div>
+          </div>
+          <div class="inp-group">
+            <div class="inp-lbl">📝 Notes (optional)</div>
+            <div class="inp" style="height:58px;align-items:flex-start;padding-top:12px;"><span class="inp-ph">Special instructions…</span></div>
+          </div>
+
+          <div class="sec mt-sm">Suggested Start Time</div>
+          <div class="chip-row" style="margin-bottom:18px;">
+            <div class="chip">9:45 AM</div>
+            <div class="chip on">10:15 AM</div>
+            <div class="chip">10:30 AM</div>
+            <div class="chip">10:45 AM</div>
+          </div>
+
+          <button class="btn btn-primary" onclick="go('s-queue')">Submit Request</button>
+          <button class="btn btn-ghost mt-xs">Clear Form</button>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div></div>
+        <div class="bn on"><div class="bn-ico">🔥</div><div class="bn-lbl">Request</div><div class="bn-dot"></div></div>
+        <div class="bn" onclick="go('s-notifs')"><div class="bn-ico" style="position:relative;">🔔<div class="unreads"></div></div><div class="bn-lbl">Alerts</div></div>
+        <div class="bn" onclick="go('s-profile')"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div></div>
+      </div>
+    </div><!-- /request -->
+
+
+    <!-- ── QUEUE ── -->
+    <div class="screen" id="s-queue">
+      <div class="sb"><span>09:41</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <div class="px pt">
+          <div style="font-size:18px;font-weight:800;margin-bottom:2px;">Preheat Queue</div>
+          <div style="font-size:13px;color:var(--t2);margin-bottom:14px;">Today · April 2 · 5 aircraft</div>
+
+          <div class="chip-row" style="margin-bottom:14px;">
+            <div class="chip on">All</div>
+            <div class="chip">Upcoming</div>
+            <div class="chip">Active</div>
+            <div class="chip">Done</div>
+          </div>
+
+          <div class="stat-row" style="margin-bottom:14px;">
+            <div class="sbox" style="text-align:center;padding:11px 8px;"><div class="sbox-lbl">Waiting</div><div class="sbox-val" style="color:var(--yellow);font-size:22px;">3</div></div>
+            <div class="sbox" style="text-align:center;padding:11px 8px;"><div class="sbox-lbl">Active</div><div class="sbox-val" style="color:var(--orange);font-size:22px;">1</div></div>
+            <div class="sbox" style="text-align:center;padding:11px 8px;"><div class="sbox-lbl">Done</div><div class="sbox-val" style="color:var(--green);font-size:22px;">1</div></div>
+          </div>
+
+          <!-- #1 done -->
+          <div class="qi" style="border-color:var(--green-d);">
+            <div class="qi-pos" style="border-color:var(--green-d);"><div class="qi-num" style="color:var(--green);">#1</div><div class="qi-lbl">Done</div></div>
+            <div class="qi-body">
+              <div class="row"><div class="qi-tail">N8834C</div><div class="sp"></div><div class="pill p-green" style="font-size:10px;padding:3px 8px;"><div class="pill-dot"></div>Done</div></div>
+              <div class="qi-meta">Cessna 172 · Capt. Lee</div>
+              <div class="qi-times">
+                <div><div class="qt-lbl">🔥 Preheat</div><div class="qt-val">08:30</div></div>
+                <div><div class="qt-lbl">✈ Flight</div><div class="qt-val">09:00</div></div>
+                <div><div class="qt-lbl">⏱ Delay</div><div class="qt-val" style="color:var(--green);">None</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- #2 active -->
+          <div class="qi" style="border-color:var(--orange);box-shadow:0 0 12px rgba(245,137,30,.12);">
+            <div class="qi-pos" style="border-color:var(--orange);"><div class="qi-num" style="color:var(--orange);">#2</div><div class="qi-lbl" style="color:var(--orange);">Active</div></div>
+            <div class="qi-body">
+              <div class="row"><div class="qi-tail">N3312X</div><div class="sp"></div><div class="pill p-orange" style="font-size:10px;padding:3px 8px;"><div class="pill-dot"></div>Heating</div></div>
+              <div class="qi-meta">Piper PA-28 · Capt. Moreau</div>
+              <div class="qi-times">
+                <div><div class="qt-lbl">🔥 Preheat</div><div class="qt-val">09:45</div></div>
+                <div><div class="qt-lbl">✈ Flight</div><div class="qt-val">10:15</div></div>
+                <div><div class="qt-lbl">⏱ Delay</div><div class="qt-val" style="color:var(--orange);">+15 m</div></div>
+              </div>
+              <div class="tbar"><div class="tfill" style="width:72%;"></div></div>
+              <div style="font-size:10px;color:var(--orange);margin-top:4px;font-weight:600;">72% – Heating in progress</div>
+            </div>
+          </div>
+
+          <!-- #3 MINE -->
+          <div class="qi qi-mine" onclick="go('s-confirm')">
+            <div class="qi-pos" style="border-color:var(--blue);background:rgba(59,142,240,.07);"><div class="qi-num" style="color:var(--blue);">#3</div><div class="qi-lbl" style="color:var(--blue);">You</div></div>
+            <div class="qi-body">
+              <div class="row"><div class="qi-tail">N4721B</div><div class="sp"></div><div class="pill p-blue" style="font-size:10px;padding:3px 8px;"><div class="pill-dot"></div>Confirm!</div></div>
+              <div class="qi-meta" style="color:var(--blue);">✈ My Aircraft</div>
+              <div class="qi-times">
+                <div><div class="qt-lbl">🔥 Preheat</div><div class="qt-val">10:15</div></div>
+                <div><div class="qt-lbl">✈ Flight</div><div class="qt-val">10:45</div></div>
+                <div><div class="qt-lbl">⏱ Delay</div><div class="qt-val" style="color:var(--orange);">+30 m</div></div>
+              </div>
+              <button class="btn btn-orange btn-sm" style="margin-top:10px;" onclick="event.stopPropagation();go('s-confirm')">Confirm Now</button>
+            </div>
+          </div>
+
+          <!-- #4 waiting -->
+          <div class="qi">
+            <div class="qi-pos"><div class="qi-num" style="color:var(--t2);">#4</div><div class="qi-lbl">Wait</div></div>
+            <div class="qi-body">
+              <div class="row"><div class="qi-tail">N6690T</div><div class="sp"></div><div class="pill p-gray" style="font-size:10px;padding:3px 8px;"><div class="pill-dot"></div>Waiting</div></div>
+              <div class="qi-meta">Beechcraft · Capt. Singh</div>
+              <div class="qi-times">
+                <div><div class="qt-lbl">🔥 Preheat</div><div class="qt-val">11:00</div></div>
+                <div><div class="qt-lbl">✈ Flight</div><div class="qt-val">11:30</div></div>
+                <div><div class="qt-lbl">⏱ Delay</div><div class="qt-val" style="color:var(--yellow);">+45 m</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- #5 waiting -->
+          <div class="qi">
+            <div class="qi-pos"><div class="qi-num" style="color:var(--t2);">#5</div><div class="qi-lbl">Wait</div></div>
+            <div class="qi-body">
+              <div class="row"><div class="qi-tail">N2251H</div><div class="sp"></div><div class="pill p-gray" style="font-size:10px;padding:3px 8px;"><div class="pill-dot"></div>Waiting</div></div>
+              <div class="qi-meta">Diamond DA40 · Capt. Patel</div>
+              <div class="qi-times">
+                <div><div class="qt-lbl">🔥 Preheat</div><div class="qt-val">11:45</div></div>
+                <div><div class="qt-lbl">✈ Flight</div><div class="qt-val">12:15</div></div>
+                <div><div class="qt-lbl">⏱ Delay</div><div class="qt-val" style="color:var(--yellow);">+60 m</div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div></div>
+        <div class="bn on"><div class="bn-ico">📋</div><div class="bn-lbl">Queue</div><div class="bn-dot"></div></div>
+        <div class="bn" onclick="go('s-notifs')"><div class="bn-ico" style="position:relative;">🔔<div class="unreads"></div></div><div class="bn-lbl">Alerts</div></div>
+        <div class="bn" onclick="go('s-profile')"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div></div>
+      </div>
+    </div><!-- /queue -->
+
+
+    <!-- ── CONFIRM ── -->
+    <div class="screen" id="s-confirm">
+      <div class="sb" style="background:rgba(240,82,82,.07);"><span>10:15</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <!-- Big red header -->
+        <div style="padding:28px 20px 0;text-align:center;background:linear-gradient(180deg,rgba(240,82,82,.14) 0%,transparent 80%);">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--red-d);border:3px solid var(--red);display:inline-flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 0 24px rgba(240,82,82,.4);">⚠️</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-top:14px;">Action Required</div>
+          <div style="font-size:21px;font-weight:800;margin-top:6px;line-height:1.2;">Confirm Your<br>Flight Attendance</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:8px;line-height:1.6;">Your flight departs in 30 minutes.<br>Confirm you are heading to the aircraft.</div>
+        </div>
+
+        <!-- Countdown -->
+        <div style="margin-top:22px;text-align:center;">
+          <div class="cring">
+            <svg width="130" height="130" viewBox="0 0 130 130">
+              <circle class="trk" cx="65" cy="65" r="58"/>
+              <circle class="fill" id="cring-fill" cx="65" cy="65" r="58"/>
+            </svg>
+            <div class="ctext">
+              <div class="cnum" id="countdown-display">22:41</div>
+              <div class="cunit">remaining</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--t3);margin-top:8px;">Time to respond before auto-cancel</div>
+        </div>
+
+        <!-- Flight summary -->
+        <div class="px mt">
+          <div class="card" style="margin-bottom:14px;">
+            <div class="row" style="margin-bottom:10px;">
+              <div style="font-size:22px;font-weight:900;letter-spacing:-.5px;">N4721B</div>
+              <div class="sp"></div>
+              <div class="badge b-orange">Queue #3</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div><div style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">🔥 Preheat</div><div style="font-size:17px;font-weight:800;color:var(--orange);">10:15 AM</div></div>
+              <div><div style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">✈️ Departs</div><div style="font-size:17px;font-weight:800;">10:45 AM</div></div>
+            </div>
+          </div>
+
+          <div class="alert a-red" style="margin-bottom:18px;">
+            <div class="a-ico">🚨</div>
+            <div>
+              <div class="a-title" style="color:var(--red);">Do not miss this window</div>
+              <div class="a-msg">If not confirmed in time, your preheat slot will be canceled and the next aircraft will take your position.</div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" style="font-size:17px;padding:20px;box-shadow:0 6px 28px rgba(59,142,240,.4);" onclick="go('s-track')">
+            ✅ &nbsp;I'm Arriving — Confirm
+          </button>
+          <div style="font-size:12px;color:var(--t3);text-align:center;margin:10px 0 4px;">I won't be able to make it</div>
+          <button class="btn btn-danger" onclick="go('s-dashboard')">✗ &nbsp;Cancel My Preheat Request</button>
+        </div>
+      </div>
+    </div><!-- /confirm -->
+
+
+    <!-- ── TRACK ── -->
+    <div class="screen" id="s-track">
+      <div class="sb"><span>10:22</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <div class="back-row" onclick="go('s-dashboard')">
+          <div class="back-ico">←</div>
+          <div class="back-title">Preheat Tracking</div>
+        </div>
+        <div style="font-size:13px;color:var(--t2);padding:0 20px;margin-top:-10px;margin-bottom:16px;">N4721B · Live Status</div>
+
+        <div class="px">
+          <!-- Gauge card -->
+          <div style="background:linear-gradient(135deg,#1A1E2E,#1C2235);border-radius:var(--r-lg);border:1.5px solid var(--orange);padding:22px;margin-bottom:14px;text-align:center;box-shadow:0 4px 24px rgba(245,137,30,.1);">
+            <div class="pill p-orange" style="margin-bottom:16px;"><div class="pill-dot"></div>Preheating In Progress</div>
+            <!-- gauge -->
+            <div class="hgauge">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <defs>
+                  <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#2264C2"/>
+                    <stop offset="60%" stop-color="#F5891E"/>
+                    <stop offset="100%" stop-color="#F05252"/>
+                  </linearGradient>
+                </defs>
+                <circle class="trk" cx="70" cy="70" r="60"/>
+                <circle class="fill" cx="70" cy="70" r="60"/>
+              </svg>
+              <div class="htext">
+                <div style="font-size:30px;font-weight:900;color:var(--orange);">72%</div>
+                <div style="font-size:11px;color:var(--t2);font-weight:600;">heated</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;">
+              <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Current</div><div style="font-size:15px;font-weight:800;color:var(--orange);">-4°C</div></div>
+              <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Target</div><div style="font-size:15px;font-weight:800;">+5°C</div></div>
+              <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Ambient</div><div style="font-size:15px;font-weight:800;color:var(--blue);">-12°C</div></div>
+            </div>
+          </div>
+
+          <!-- ETA -->
+          <div class="card" style="margin-bottom:14px;">
+            <div class="row">
+              <div><div class="sec" style="margin-bottom:3px;">Estimated Completion</div><div style="font-size:22px;font-weight:800;color:var(--green);">10:38 AM</div><div style="font-size:12px;color:var(--t2);margin-top:2px;">~16 min remaining</div></div>
+              <div class="sp"></div>
+              <div style="text-align:right;"><div style="font-size:11px;color:var(--t3);">Delay applied</div><div style="font-size:14px;font-weight:700;color:var(--yellow);">+30 min</div><div style="font-size:11px;color:var(--t3);margin-top:2px;">Queue adjusted</div></div>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div class="sec">Progress Timeline</div>
+          <div class="tl">
+            <div class="tl-item">
+              <div class="tl-l"><div class="tl-dot" style="border-color:var(--green);background:var(--green);"></div><div class="tl-line" style="background:var(--green);"></div></div>
+              <div class="tl-b"><div class="tl-time">08:45 AM</div><div class="tl-card" style="border-color:var(--green-d);"><div class="row"><div class="tl-head">Request Submitted</div><div class="sp"></div><div class="badge b-green">Done</div></div><div class="tl-sub">Tail N4721B · Queue #3</div></div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-l"><div class="tl-dot" style="border-color:var(--green);background:var(--green);"></div><div class="tl-line" style="background:var(--green);"></div></div>
+              <div class="tl-b"><div class="tl-time">09:52 AM</div><div class="tl-card" style="border-color:var(--green-d);"><div class="row"><div class="tl-head">Attendance Confirmed</div><div class="sp"></div><div class="badge b-green">Done</div></div><div class="tl-sub">30 min window · On time</div></div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-l"><div class="tl-dot" style="border-color:var(--orange);background:var(--orange);box-shadow:0 0 8px rgba(245,137,30,.6);"></div><div class="tl-line" style="background:var(--border);"></div></div>
+              <div class="tl-b"><div class="tl-time">10:15 AM · Now</div><div class="tl-card" style="border-color:var(--orange);"><div class="row"><div class="tl-head">Preheating Started</div><div class="sp"></div><div class="badge b-orange">Active</div></div><div class="tl-sub">72% complete · 16 min left</div></div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-l"><div class="tl-dot" style="border-color:var(--border);"></div><div class="tl-line" style="background:var(--border);"></div></div>
+              <div class="tl-b"><div class="tl-time">~10:38 AM</div><div class="tl-card"><div class="row"><div class="tl-head" style="color:var(--t3);">Preheat Complete</div><div class="sp"></div><div class="badge b-gray">Pending</div></div><div class="tl-sub" style="color:var(--t3);">Aircraft ready for departure</div></div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-l"><div class="tl-dot" style="border-color:var(--border);"></div></div>
+              <div class="tl-b"><div class="tl-time">10:45 AM</div><div class="tl-card"><div class="row"><div class="tl-head" style="color:var(--t3);">Departure</div><div class="sp"></div><div class="badge b-blue">Soon</div></div><div class="tl-sub" style="color:var(--t3);">N4721B ready</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div></div>
+        <div class="bn on"><div class="bn-ico">📊</div><div class="bn-lbl">Track</div><div class="bn-dot"></div></div>
+        <div class="bn" onclick="go('s-notifs')"><div class="bn-ico" style="position:relative;">🔔<div class="unreads"></div></div><div class="bn-lbl">Alerts</div></div>
+        <div class="bn" onclick="go('s-profile')"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div></div>
+      </div>
+    </div><!-- /track -->
+
+
+    <!-- ── NOTIFICATIONS ── -->
+    <div class="screen" id="s-notifs">
+      <div class="sb"><span>10:22</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body px pt">
+        <div class="row" style="margin-bottom:18px;">
+          <div style="font-size:18px;font-weight:800;">Notifications</div>
+          <div class="sp"></div>
+          <span style="font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;">Mark all read</span>
+        </div>
+
+        <!-- Urgent -->
+        <div style="padding:12px 14px;background:rgba(240,82,82,.07);border-radius:var(--r-md);border:1px solid var(--red-d);margin-bottom:12px;cursor:pointer;" onclick="go('s-confirm')">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:8px;">🚨 Urgent — Tap to respond</div>
+          <div class="nitem" style="border:none;padding:0;">
+            <div class="nico" style="background:var(--red-d);">⏰</div>
+            <div class="nbody">
+              <div class="ntitle">Confirmation Required — N4721B</div>
+              <div class="nmsg">Flight departs in 30 min. Confirm or preheat will be canceled.</div>
+              <div class="ntime">2 min ago</div>
+            </div>
+            <div class="ndot" style="background:var(--red);"></div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin:12px 0 4px;">Today</div>
+        <div class="nitem">
+          <div class="nico" style="background:var(--blue-d);">📅</div>
+          <div class="nbody">
+            <div class="ntitle">Schedule Assigned</div>
+            <div class="nmsg">N4721B preheat at 10:15 AM. Adjusted +30 min from requested time.</div>
+            <div class="ntime">8:52 AM</div>
+          </div>
+          <div class="ndot" style="background:var(--blue);"></div>
+        </div>
+        <div class="nitem">
+          <div class="nico" style="background:var(--orange-d);">🔥</div>
+          <div class="nbody">
+            <div class="ntitle">Preheat Started — N4721B</div>
+            <div class="nmsg">Aircraft preheat has begun. Est. completion: 10:38 AM.</div>
+            <div class="ntime">10:15 AM</div>
+          </div>
+        </div>
+        <div class="nitem">
+          <div class="nico" style="background:var(--s2);">📋</div>
+          <div class="nbody">
+            <div class="ntitle">Queue Updated</div>
+            <div class="nmsg">Your position moved from #4 → #3 due to a prior cancellation.</div>
+            <div class="ntime">9:30 AM</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin:12px 0 4px;">Yesterday</div>
+        <div class="nitem">
+          <div class="nico" style="background:var(--green-d);">✅</div>
+          <div class="nbody">
+            <div class="ntitle">Preheat Completed — N8834C</div>
+            <div class="nmsg">Aircraft was fully preheated and ready at 07:30 AM.</div>
+            <div class="ntime">7:34 AM</div>
+          </div>
+        </div>
+        <div class="nitem" style="border-bottom:none;">
+          <div class="nico" style="background:var(--red-d);">❌</div>
+          <div class="nbody">
+            <div class="ntitle">Preheat Canceled — N3312X</div>
+            <div class="nmsg">Confirmation not received. Slot was released to next aircraft.</div>
+            <div class="ntime">6:10 AM</div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div></div>
+        <div class="bn" onclick="go('s-queue')"><div class="bn-ico">📋</div><div class="bn-lbl">Queue</div></div>
+        <div class="bn on"><div class="bn-ico">🔔</div><div class="bn-lbl">Alerts</div><div class="bn-dot"></div></div>
+        <div class="bn" onclick="go('s-profile')"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div></div>
+      </div>
+    </div><!-- /notifs -->
+
+
+    <!-- ── PROFILE ── -->
+    <div class="screen" id="s-profile">
+      <div class="sb"><span>10:22</span><div class="sb-r">📶 🔋</div></div>
+      <div class="body">
+        <!-- Header -->
+        <div style="background:linear-gradient(180deg,#111525,var(--bg));padding:28px 20px 22px;text-align:center;">
+          <div class="av-lg" style="margin:0 auto 14px;">MR</div>
+          <div style="font-size:20px;font-weight:800;">Capt. Marcus Reid</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:3px;">License #PPL-US-442819</div>
+          <div style="margin-top:10px;"><span class="pill p-blue">✈ Pilot Role</span></div>
+          <div style="display:flex;justify-content:center;gap:28px;margin-top:16px;">
+            <div><div style="font-size:18px;font-weight:800;">47</div><div style="font-size:11px;color:var(--t3);">Flights</div></div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div><div style="font-size:18px;font-weight:800;color:var(--green);">94%</div><div style="font-size:11px;color:var(--t3);">Confirm Rate</div></div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div><div style="font-size:18px;font-weight:800;color:var(--blue);">3</div><div style="font-size:11px;color:var(--t3);">Aircraft</div></div>
+          </div>
+        </div>
+
+        <div class="px">
+          <div class="sec" style="margin-top:4px;">Account</div>
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Full Name</div><div style="font-size:12px;color:var(--t2);">Marcus Reid</div></div><div style="font-size:18px;color:var(--t3);">›</div></div>
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Email</div><div style="font-size:12px;color:var(--t2);">pilot@airbase.org</div></div><div style="font-size:18px;color:var(--t3);">›</div></div>
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">My Aircraft</div><div style="font-size:12px;color:var(--t2);">N4721B, N8834C, N6690T</div></div><div style="font-size:18px;color:var(--t3);">›</div></div>
+          </div>
+
+          <div class="sec">Notifications</div>
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Schedule Alerts</div><div style="font-size:12px;color:var(--t2);">When preheat is assigned</div></div><div class="tog-track"><div class="tog-thumb"></div></div></div>
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Confirmation Reminder</div><div style="font-size:12px;color:var(--t2);">30 min before departure</div></div><div class="tog-track"><div class="tog-thumb"></div></div></div>
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Preheat Progress</div><div style="font-size:12px;color:var(--t2);">Started / Completed</div></div><div class="tog-track"><div class="tog-thumb"></div></div></div>
+            <div class="tog-row tog-off"><div><div style="font-size:14px;font-weight:600;">Queue Changes</div><div style="font-size:12px;color:var(--t2);">Position updates</div></div><div class="tog-track"><div class="tog-thumb"></div></div></div>
+          </div>
+
+          <div class="sec">Preferences</div>
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Temperature Unit</div><div style="font-size:12px;color:var(--t2);">Celsius (°C)</div></div><div style="font-size:18px;color:var(--t3);">›</div></div>
+            <div class="tog-row"><div><div style="font-size:14px;font-weight:600;">Time Format</div><div style="font-size:12px;color:var(--t2);">12-hour (AM/PM)</div></div><div style="font-size:18px;color:var(--t3);">›</div></div>
+          </div>
+
+          <button class="btn btn-ghost" style="border-color:var(--red-d);color:var(--red);margin-bottom:8px;" onclick="go('s-login')">Sign Out</button>
+          <div style="text-align:center;margin-top:14px;margin-bottom:4px;">
+            <div style="font-size:11px;color:var(--t3);">Preheat Scheduler v1.0.0 · © 2026</div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="bn" onclick="go('s-dashboard')"><div class="bn-ico">🏠</div><div class="bn-lbl">Home</div></div>
+        <div class="bn" onclick="go('s-queue')"><div class="bn-ico">📋</div><div class="bn-lbl">Queue</div></div>
+        <div class="bn" onclick="go('s-notifs')"><div class="bn-ico" style="position:relative;">🔔<div class="unreads"></div></div><div class="bn-lbl">Alerts</div></div>
+        <div class="bn on"><div class="bn-ico">👤</div><div class="bn-lbl">Profile</div><div class="bn-dot"></div></div>
+      </div>
+    </div><!-- /profile -->
+
+  </div><!-- /phone -->
+
+  <div class="hint">Tap buttons, cards and nav icons to navigate between screens</div>
+</div><!-- /shell -->
+
+<script>
+// ── NAVIGATION ────────────────────────────────────
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add('active');
+    // scroll to top of body
+    const body = target.querySelector('.body');
+    if (body) body.scrollTop = 0;
+  }
+}
+
+// ── COUNTDOWN TIMER (Confirm screen) ──────────────
+let totalSecs = 22 * 60 + 41;
+const circumference = 364; // 2πr for r=58
+
+function updateCountdown() {
+  if (totalSecs <= 0) {
+    document.getElementById('countdown-display').textContent = '00:00';
+    return;
+  }
+  totalSecs--;
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  document.getElementById('countdown-display').textContent =
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+
+  // Update ring
+  const totalWindow = 30 * 60;
+  const fraction = totalSecs / totalWindow;
+  const offset = circumference - fraction * circumference;
+  const fill = document.getElementById('cring-fill');
+  if (fill) fill.style.strokeDashoffset = offset;
+
+  // Turn ring red when < 5 min
+  if (totalSecs < 300 && fill) fill.style.stroke = 'var(--red)';
+}
+
+setInterval(updateCountdown, 1000);
+
+// Auto-advance from splash after 2.6s
+setTimeout(() => {
+  const splash = document.getElementById('s-splash');
+  if (splash && splash.classList.contains('active')) {
+    // Leave on splash so user can tap "Get Started"
+  }
+}, 2600);
+</script>
+</body>
+</html>
