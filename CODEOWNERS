@@ -1,0 +1,14 @@
+# Global owner — required review on all PRs
+* @jptaycs
+
+# API service
+/services/api/ @jptaycs
+
+# Mobile app
+/apps/mobile/ @jptaycs
+
+# Web admin
+/apps/web-admin/ @jptaycs
+
+# Shared packages
+/packages/ @jptaycs

@@ -1,0 +1,29 @@
+{
+  "name": "@preheat/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@preheat/shared": "workspace:*",
+    "expo": "~51.0.0",
+    "expo-router": "~3.5.0",
+    "expo-secure-store": "~13.0.2",
+    "expo-local-authentication": "~14.0.1",
+    "expo-notifications": "~0.28.3",
+    "react": "18.2.0",
+    "react-native": "0.74.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@types/react": "~18.2.79",
+    "typescript": "^5.4.5"
+  }
+}
