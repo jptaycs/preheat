@@ -37,7 +37,6 @@ export default function RegisterScreen() {
     confirmPass: '',
     licenseNumber: '',
   })
-  const [showPass, setShowPass] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<FieldErrors>({})
 
@@ -136,22 +135,17 @@ export default function RegisterScreen() {
 
         {/* Password */}
         <Field label="PASSWORD" error={errors.password}>
-          <View
-            style={[styles.input, styles.passwordRow, errors.password ? styles.inputError : null]}
-          >
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Min. 8 characters"
-              placeholderTextColor={colors.t3}
-              value={fields.password}
-              onChangeText={set('password')}
-              secureTextEntry={!showPass}
-              returnKeyType="next"
-            />
-            <TouchableOpacity onPress={() => setShowPass((v) => !v)}>
-              <Text style={styles.showHide}>{showPass ? 'Hide' : 'Show'}</Text>
-            </TouchableOpacity>
-          </View>
+          <TextInput
+            style={[styles.input, errors.password ? styles.inputError : null]}
+            placeholder="Min. 8 characters"
+            placeholderTextColor={colors.t3}
+            value={fields.password}
+            onChangeText={set('password')}
+            secureTextEntry
+            textContentType="oneTimeCode"
+            autoComplete="off"
+            returnKeyType="next"
+          />
         </Field>
 
         {/* Confirm password */}
@@ -162,7 +156,9 @@ export default function RegisterScreen() {
             placeholderTextColor={colors.t3}
             value={fields.confirmPass}
             onChangeText={set('confirmPass')}
-            secureTextEntry={!showPass}
+            secureTextEntry
+            textContentType="oneTimeCode"
+            autoComplete="off"
             returnKeyType="next"
           />
         </Field>

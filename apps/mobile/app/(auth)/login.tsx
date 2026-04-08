@@ -21,7 +21,6 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
 
@@ -117,26 +116,19 @@ export default function LoginScreen() {
         {/* Password */}
         <View style={styles.fieldWrap}>
           <Text style={styles.label}>PASSWORD</Text>
-          <View
-            style={[styles.input, styles.passwordRow, errors.password ? styles.inputError : null]}
-          >
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="••••••••"
-              placeholderTextColor={colors.t3}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPass}
-              autoComplete="password"
-              returnKeyType="done"
-              onSubmitEditing={() => {
-                void handleLogin()
-              }}
-            />
-            <TouchableOpacity onPress={() => setShowPass((v) => !v)}>
-              <Text style={styles.showHide}>{showPass ? 'Hide' : 'Show'}</Text>
-            </TouchableOpacity>
-          </View>
+          <TextInput
+            style={[styles.input, errors.password ? styles.inputError : null]}
+            placeholder="••••••••"
+            placeholderTextColor={colors.t3}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              void handleLogin()
+            }}
+          />
           {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
         </View>
 

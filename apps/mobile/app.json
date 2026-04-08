@@ -26,6 +26,7 @@
       },
       "package": "com.preheat.app"
     },
+    "newArchEnabled": true,
     "scheme": "preheat",
     "plugins": [
       "expo-router",
@@ -35,7 +36,8 @@
         {
           "faceIDPermission": "Use Face ID to sign in to Preheat"
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

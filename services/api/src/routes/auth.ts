@@ -25,7 +25,8 @@ const refreshSchema = z.object({
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
-export function authRoutes(app: FastifyInstance) {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function authRoutes(app: FastifyInstance) {
   // POST /auth/register
   app.post('/register', async (req, reply) => {
     const parsed = registerSchema.safeParse(req.body)
@@ -119,13 +120,11 @@ export function authRoutes(app: FastifyInstance) {
     const token = result.rows[0]
 
     if (!token || new Date(token.expires_at) < new Date()) {
-      return reply
-        .status(401)
-        .send({
-          statusCode: 401,
-          error: 'Unauthorized',
-          message: 'Invalid or expired refresh token',
-        })
+      return reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Invalid or expired refresh token',
+      })
     }
 
     // Rotate: delete old, issue new
