@@ -253,4 +253,22 @@ export const sessionsApi = {
   getByRequest(requestId: string) {
     return request<SessionDetail>(`/preheat-sessions/by-request/${requestId}`)
   },
+  start(requestId: string) {
+    return request<{ id: string; startedAt: string }>('/preheat-sessions', {
+      method: 'POST',
+      body: { requestId },
+    })
+  },
+  addReading(sessionId: string, tempCelsius: number) {
+    return request<{ id: string; tempCelsius: number; recordedAt: string }>(
+      `/preheat-sessions/${sessionId}/reading`,
+      { method: 'POST', body: { tempCelsius } },
+    )
+  },
+  complete(sessionId: string) {
+    return request<{ success: boolean; completedAt: string }>(
+      `/preheat-sessions/${sessionId}/complete`,
+      { method: 'POST' },
+    )
+  },
 }

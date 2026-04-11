@@ -10,11 +10,10 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
-import { preheatRequestsApi, queueApi, authApi, ApiError } from '../../src/lib/api'
+import { preheatRequestsApi, queueApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { colors, font, radius } from '../../src/theme'
-import { storage } from '../../src/lib/storage'
 
 function getGreeting(): string {
   const h = new Date().getHours()
@@ -36,15 +35,13 @@ function fmtTime(iso: string): string {
 }
 
 export default function DashboardScreen() {
-  const { user, logout } = useAuth()
+  const { user, logout, devLogin } = useAuth()
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [myRequests, setMyRequests] = useState<PreheatRequest[]>([])
   const [queue, setQueue] = useState<QueueResponse | null>(null)
-  const [devLoading, setDevLoading] = useState(false)
-
   const fetchData = useCallback(async () => {
     try {
       setError(null)
@@ -79,24 +76,6 @@ export default function DashboardScreen() {
     const deadline = new Date(r.confirmDeadline).getTime()
     return now >= opens && now <= deadline
   })
-
-  async function devLoginAs(role: 'pilot' | 'mechanic') {
-    setDevLoading(true)
-    try {
-      const email = role === 'pilot' ? 'pilot@dev.local' : 'mechanic@dev.local'
-      const { accessToken, refreshToken } = await authApi.login({
-        email,
-        password: 'devpassword',
-      })
-      await storage.setTokens(accessToken, refreshToken)
-      // Force a page reload by navigating
-      router.replace('/(app)')
-    } catch {
-      // ignore
-    } finally {
-      setDevLoading(false)
-    }
-  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -237,18 +216,10 @@ export default function DashboardScreen() {
           <View style={styles.devPanel}>
             <Text style={styles.devTitle}>Dev Panel</Text>
             <View style={styles.devRow}>
-              <TouchableOpacity
-                style={styles.devBtn}
-                onPress={() => void devLoginAs('pilot')}
-                disabled={devLoading}
-              >
+              <TouchableOpacity style={styles.devBtn} onPress={() => devLogin('pilot')}>
                 <Text style={styles.devBtnText}>Dev Pilot</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.devBtn}
-                onPress={() => void devLoginAs('mechanic')}
-                disabled={devLoading}
-              >
+              <TouchableOpacity style={styles.devBtn} onPress={() => devLogin('mechanic')}>
                 <Text style={styles.devBtnText}>Dev Mechanic</Text>
               </TouchableOpacity>
               <TouchableOpacity

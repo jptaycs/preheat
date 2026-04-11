@@ -13,14 +13,15 @@ const addReadingBody = z.object({
   tempCelsius: z.number().min(-60).max(60),
 })
 
+const mechanic = requireRole('mechanic')
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function preheatSessionRoutes(app: FastifyInstance) {
-  // All session routes require mechanic role
+  // All session routes require authentication
   app.addHook('preHandler', authenticate)
-  app.addHook('preHandler', requireRole('mechanic'))
 
-  // POST /preheat-sessions — start a session
-  app.post('/', async (req, reply) => {
+  // POST /preheat-sessions — start a session (mechanic only)
+  app.post('/', { preHandler: [mechanic] }, async (req, reply) => {
     const parsed = startSessionBody.safeParse(req.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -83,145 +84,157 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       [requestId],
     )
 
-    broadcast(app, 'session.started', { sessionId: session.rows[0]!.id, requestId })
+    const row = session.rows[0]!
+    broadcast(app, 'session.started', { sessionId: row.id, requestId })
     broadcast(app, 'queue.updated', { requestDate: preheatRequest.request_date })
 
-    return reply.status(201).send(session.rows[0])
+    return reply.status(201).send({ id: row.id, startedAt: row.started_at })
   })
 
-  // POST /preheat-sessions/:id/reading — log temperature
-  app.post<{ Params: { id: string } }>('/:id/reading', async (req, reply) => {
-    const parsed = addReadingBody.safeParse(req.body)
-    if (!parsed.success) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'tempCelsius must be a number between -60 and 60',
-      })
-    }
-
-    const { tempCelsius } = parsed.data
-
-    // Verify session exists
-    const sessionResult = await db.query<{
-      id: string
-      request_id: string
-      completed_at: string | null
-    }>(`SELECT id, request_id, completed_at FROM preheat_sessions WHERE id = $1`, [req.params.id])
-    if (sessionResult.rows.length === 0) {
-      return reply.status(404).send({
-        statusCode: 404,
-        error: 'Not Found',
-        message: 'Session not found',
-      })
-    }
-    if (sessionResult.rows[0].completed_at) {
-      return reply.status(409).send({
-        statusCode: 409,
-        error: 'Conflict',
-        message: 'Cannot add readings to a completed session',
-      })
-    }
-
-    const reading = await db.query<{ id: string; temp_celsius: number; recorded_at: string }>(
-      `INSERT INTO session_readings (session_id, temp_celsius)
-       VALUES ($1, $2)
-       RETURNING id, temp_celsius, recorded_at`,
-      [req.params.id, tempCelsius],
-    )
-
-    // Update current temp on session
-    await db.query(
-      `UPDATE preheat_sessions SET current_temp_celsius = $1, updated_at = NOW() WHERE id = $2`,
-      [tempCelsius, req.params.id],
-    )
-
-    broadcast(app, 'temp.updated', {
-      sessionId: req.params.id,
-      tempCelsius,
-      recordedAt: reading.rows[0]!.recorded_at,
-    })
-
-    return reply.status(201).send(reading.rows[0])
-  })
-
-  // POST /preheat-sessions/:id/complete — mark session done
-  app.post<{ Params: { id: string } }>('/:id/complete', async (req, reply) => {
-    const sessionResult = await db.query<{
-      id: string
-      request_id: string
-      completed_at: string | null
-    }>(`SELECT id, request_id, completed_at FROM preheat_sessions WHERE id = $1`, [req.params.id])
-    if (sessionResult.rows.length === 0) {
-      return reply.status(404).send({
-        statusCode: 404,
-        error: 'Not Found',
-        message: 'Session not found',
-      })
-    }
-    if (sessionResult.rows[0].completed_at) {
-      return reply.status(409).send({
-        statusCode: 409,
-        error: 'Conflict',
-        message: 'Session is already completed',
-      })
-    }
-
-    const { request_id } = sessionResult.rows[0] as {
-      id: string
-      request_id: string
-      completed_at: string | null
-    }
-
-    await db.query(
-      `UPDATE preheat_sessions SET completed_at = NOW(), updated_at = NOW() WHERE id = $1`,
-      [req.params.id],
-    )
-
-    await db.query(
-      `UPDATE preheat_requests SET status = 'completed', updated_at = NOW() WHERE id = $1`,
-      [request_id],
-    )
-
-    // Get request date for broadcast + pilot push token
-    const reqResult = await db.query<{
-      request_date: string
-      pilot_id: string
-      engine_start_time: string
-    }>(`SELECT request_date, pilot_id, engine_start_time FROM preheat_requests WHERE id = $1`, [
-      request_id,
-    ])
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const preheatRequest = reqResult.rows[0]
-
-    if (preheatRequest) {
-      broadcast(app, 'session.completed', { sessionId: req.params.id, requestId: request_id })
-      broadcast(app, 'queue.updated', { requestDate: preheatRequest.request_date })
-
-      // Push notification to pilot
-      const pilotResult = await db.query<{ push_token: string | null }>(
-        'SELECT push_token FROM users WHERE id = $1',
-        [preheatRequest.pilot_id],
-      )
-      const pushToken = pilotResult.rows[0]?.push_token
-      if (pushToken) {
-        void sendPushNotification([
-          {
-            to: pushToken,
-            title: 'Aircraft Ready',
-            body: `Your aircraft preheat is complete. Engine start time: ${new Date(preheatRequest.engine_start_time).toISOString().slice(11, 16)} UTC`,
-            sound: 'default',
-            data: { requestId: request_id, screen: 'track' },
-          },
-        ])
+  // POST /preheat-sessions/:id/reading — log temperature (mechanic only)
+  app.post<{ Params: { id: string } }>(
+    '/:id/reading',
+    { preHandler: [mechanic] },
+    async (req, reply) => {
+      const parsed = addReadingBody.safeParse(req.body)
+      if (!parsed.success) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'tempCelsius must be a number between -60 and 60',
+        })
       }
-    }
 
-    return reply.send({ success: true, completedAt: new Date().toISOString() })
-  })
+      const { tempCelsius } = parsed.data
 
-  // GET /preheat-sessions/:id — session detail with readings
-  app.get<{ Params: { id: string } }>('/:id', async (req, reply) => {
+      // Verify session exists
+      const sessionResult = await db.query<{
+        id: string
+        request_id: string
+        completed_at: string | null
+      }>(`SELECT id, request_id, completed_at FROM preheat_sessions WHERE id = $1`, [req.params.id])
+      if (sessionResult.rows.length === 0) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Session not found',
+        })
+      }
+      if (sessionResult.rows[0].completed_at) {
+        return reply.status(409).send({
+          statusCode: 409,
+          error: 'Conflict',
+          message: 'Cannot add readings to a completed session',
+        })
+      }
+
+      const reading = await db.query<{ id: string; temp_celsius: number; recorded_at: string }>(
+        `INSERT INTO session_readings (session_id, temp_celsius)
+         VALUES ($1, $2)
+         RETURNING id, temp_celsius, recorded_at`,
+        [req.params.id, tempCelsius],
+      )
+
+      // Update current temp on session
+      await db.query(
+        `UPDATE preheat_sessions SET current_temp_celsius = $1, updated_at = NOW() WHERE id = $2`,
+        [tempCelsius, req.params.id],
+      )
+
+      broadcast(app, 'temp.updated', {
+        sessionId: req.params.id,
+        tempCelsius,
+        recordedAt: reading.rows[0]!.recorded_at,
+      })
+
+      const r = reading.rows[0]!
+      return reply
+        .status(201)
+        .send({ id: r.id, tempCelsius: r.temp_celsius, recordedAt: r.recorded_at })
+    },
+  )
+
+  // POST /preheat-sessions/:id/complete — mark session done (mechanic only)
+  app.post<{ Params: { id: string } }>(
+    '/:id/complete',
+    { preHandler: [mechanic] },
+    async (req, reply) => {
+      const sessionResult = await db.query<{
+        id: string
+        request_id: string
+        completed_at: string | null
+      }>(`SELECT id, request_id, completed_at FROM preheat_sessions WHERE id = $1`, [req.params.id])
+      if (sessionResult.rows.length === 0) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Session not found',
+        })
+      }
+      if (sessionResult.rows[0].completed_at) {
+        return reply.status(409).send({
+          statusCode: 409,
+          error: 'Conflict',
+          message: 'Session is already completed',
+        })
+      }
+
+      const { request_id } = sessionResult.rows[0] as {
+        id: string
+        request_id: string
+        completed_at: string | null
+      }
+
+      await db.query(
+        `UPDATE preheat_sessions SET completed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [req.params.id],
+      )
+
+      await db.query(
+        `UPDATE preheat_requests SET status = 'completed', updated_at = NOW() WHERE id = $1`,
+        [request_id],
+      )
+
+      // Get request date for broadcast + pilot push token
+      const reqResult = await db.query<{
+        request_date: string
+        pilot_id: string
+        engine_start_time: string
+      }>(`SELECT request_date, pilot_id, engine_start_time FROM preheat_requests WHERE id = $1`, [
+        request_id,
+      ])
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const preheatReq = reqResult.rows[0]
+
+      if (preheatReq) {
+        broadcast(app, 'session.completed', { sessionId: req.params.id, requestId: request_id })
+        broadcast(app, 'queue.updated', { requestDate: preheatReq.request_date })
+
+        // Push notification to pilot
+        const pilotResult = await db.query<{ push_token: string | null }>(
+          'SELECT push_token FROM users WHERE id = $1',
+          [preheatReq.pilot_id],
+        )
+        const pushToken = pilotResult.rows[0]?.push_token
+        if (pushToken) {
+          void sendPushNotification([
+            {
+              to: pushToken,
+              title: 'Aircraft Ready',
+              body: `Your aircraft preheat is complete. Engine start time: ${new Date(preheatReq.engine_start_time).toISOString().slice(11, 16)} UTC`,
+              sound: 'default',
+              data: { requestId: request_id, screen: 'track' },
+            },
+          ])
+        }
+      }
+
+      return reply.send({ success: true, completedAt: new Date().toISOString() })
+    },
+  )
+
+  // GET /preheat-sessions/:id — session detail with readings (mechanic only)
+  app.get<{ Params: { id: string } }>('/:id', { preHandler: [mechanic] }, async (req, reply) => {
     const session = await db.query<{
       id: string
       request_id: string
@@ -249,10 +262,23 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       [req.params.id],
     )
 
-    return reply.send({ ...session.rows[0], readings: readings.rows })
+    const s = session.rows[0]!
+    return reply.send({
+      id: s.id,
+      requestId: s.request_id,
+      mechanicId: s.mechanic_id,
+      currentTempCelsius: s.current_temp_celsius,
+      startedAt: s.started_at,
+      completedAt: s.completed_at,
+      readings: readings.rows.map((r) => ({
+        id: r.id,
+        tempCelsius: r.temp_celsius,
+        recordedAt: r.recorded_at,
+      })),
+    })
   })
 
-  // GET /preheat-sessions/by-request/:requestId — for pilot view (no role restriction beyond auth)
+  // GET /preheat-sessions/by-request/:requestId — pilot or mechanic view (auth only)
   app.get<{ Params: { requestId: string } }>('/by-request/:requestId', async (req, reply) => {
     const session = await db.query<{
       id: string
@@ -280,6 +306,18 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       [session.rows[0]!.id],
     )
 
-    return reply.send({ ...session.rows[0], readings: readings.rows })
+    const s = session.rows[0]!
+    return reply.send({
+      id: s.id,
+      requestId: s.request_id,
+      currentTempCelsius: s.current_temp_celsius,
+      startedAt: s.started_at,
+      completedAt: s.completed_at,
+      readings: readings.rows.map((r) => ({
+        id: r.id,
+        tempCelsius: r.temp_celsius,
+        recordedAt: r.recorded_at,
+      })),
+    })
   })
 }

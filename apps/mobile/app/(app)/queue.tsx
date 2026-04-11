@@ -9,6 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useAuth } from '../../src/context/AuthContext'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
@@ -53,6 +54,8 @@ const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
 
 export default function QueueScreen() {
   const router = useRouter()
+  const { user } = useAuth()
+  const isMechanic = user?.role === 'mechanic'
   const today = new Date()
   const dates = [addDays(today, 0), addDays(today, 1), addDays(today, 2)]
 
@@ -104,6 +107,14 @@ export default function QueueScreen() {
   const stats = queueData?.stats
 
   function handleCardPress(item: QueueEntry) {
+    if (isMechanic) {
+      if (item.status === 'confirmed' || item.status === 'active') {
+        router.push(
+          `/(app)/track?requestId=${item.id}&tailNumber=${encodeURIComponent(item.tailNumber)}&aircraftType=${encodeURIComponent(item.aircraftType)}&pilotName=${encodeURIComponent(item.pilotFirstName)}`,
+        )
+      }
+      return
+    }
     if (item.status === 'active') {
       router.push(`/(app)/track?requestId=${item.id}`)
     } else if (item.isMine && item.status === 'waiting') {
@@ -116,7 +127,10 @@ export default function QueueScreen() {
   function renderItem({ item, index }: { item: QueueEntry; index: number }) {
     const c = STATUS_COLORS[item.status] ?? { bg: colors.s3, fg: colors.t2 }
     const inWindow = isInConfirmWindow(item)
-    const tappable = item.isMine || item.status === 'active'
+    const tappable =
+      item.isMine ||
+      item.status === 'active' ||
+      (isMechanic && (item.status === 'confirmed' || item.status === 'active'))
 
     return (
       <TouchableOpacity
