@@ -90,7 +90,7 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
         return reply.status(400).send({
           statusCode: 400,
           error: 'Bad Request',
-          message: `Booking for this date opens at 19:00 the day before. Try again after ${bookingOpensAt.toISOString()}`,
+          message: `Booking for this date opens at 19:00 UTC the day before (${bookingOpensAt.toUTCString().slice(0, 16)}).`,
         })
       }
 
