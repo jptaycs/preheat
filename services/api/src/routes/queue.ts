@@ -44,7 +44,19 @@ export async function queueRoutes(app: FastifyInstance) {
       [date, req.userId],
     )
 
-    const entries = rows.rows
+    const entries = rows.rows.map((r) => ({
+      id: r.id,
+      queuePosition: r.queue_position,
+      engineStartTime: r.engine_start_time,
+      assignedTime: r.assigned_time,
+      confirmOpensAt: r.confirm_opens_at,
+      confirmDeadline: r.confirm_deadline,
+      status: r.status,
+      pilotFirstName: r.pilot_first_name,
+      tailNumber: r.tail_number,
+      aircraftType: r.aircraft_type,
+      isMine: r.is_mine,
+    }))
     const stats = {
       waiting: entries.filter((e) => e.status === 'waiting').length,
       confirmed: entries.filter((e) => e.status === 'confirmed').length,

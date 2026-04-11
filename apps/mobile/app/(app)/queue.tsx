@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native'
+import { useRouter } from 'expo-router'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
@@ -51,6 +52,7 @@ const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
 }
 
 export default function QueueScreen() {
+  const router = useRouter()
   const today = new Date()
   const dates = [addDays(today, 0), addDays(today, 1), addDays(today, 2)]
 
@@ -101,12 +103,28 @@ export default function QueueScreen() {
 
   const stats = queueData?.stats
 
+  function handleCardPress(item: QueueEntry) {
+    if (item.status === 'active') {
+      router.push(`/(app)/track?requestId=${item.id}`)
+    } else if (item.isMine && item.status === 'waiting') {
+      router.push('/(app)/confirm')
+    } else if (item.isMine) {
+      router.push(`/(app)/track?requestId=${item.id}`)
+    }
+  }
+
   function renderItem({ item, index }: { item: QueueEntry; index: number }) {
     const c = STATUS_COLORS[item.status] ?? { bg: colors.s3, fg: colors.t2 }
     const inWindow = isInConfirmWindow(item)
+    const tappable = item.isMine || item.status === 'active'
 
     return (
-      <View style={[styles.card, item.isMine && styles.cardMine]}>
+      <TouchableOpacity
+        style={[styles.card, item.isMine && styles.cardMine]}
+        onPress={() => handleCardPress(item)}
+        activeOpacity={tappable ? 0.75 : 1}
+        disabled={!tappable}
+      >
         <View style={styles.cardLeft}>
           <Text style={styles.position}>#{item.queuePosition ?? index + 1}</Text>
         </View>
@@ -145,7 +163,7 @@ export default function QueueScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     )
   }
 
