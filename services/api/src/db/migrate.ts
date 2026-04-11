@@ -9,12 +9,17 @@ const sql = `
     name           TEXT NOT NULL,
     email          TEXT NOT NULL UNIQUE,
     password_hash  TEXT NOT NULL,
-    role           TEXT NOT NULL DEFAULT 'pilot' CHECK (role IN ('pilot', 'dispatcher', 'admin')),
+    role           TEXT NOT NULL DEFAULT 'pilot' CHECK (role IN ('pilot', 'mechanic', 'dispatcher', 'admin')),
     license_number TEXT,
     push_token     TEXT,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+
+  -- Add mechanic role if constraint was created without it
+  ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+  ALTER TABLE users ADD CONSTRAINT users_role_check
+    CHECK (role IN ('pilot', 'mechanic', 'dispatcher', 'admin'));
 
   CREATE TABLE IF NOT EXISTS refresh_tokens (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),

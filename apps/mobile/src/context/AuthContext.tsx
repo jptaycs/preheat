@@ -76,13 +76,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const devLogin = useCallback((role: 'pilot' | 'mechanic') => {
-    setUser({
-      id: `dev-${role}`,
-      name: role === 'pilot' ? 'Dev Pilot' : 'Dev Mechanic',
-      email: `dev-${role}@local.dev`,
-      role,
-      licenseNumber: null,
-    })
+    const creds = {
+      pilot: { email: 'dev-pilot@preheat.local', password: 'devpilot123' },
+      mechanic: { email: 'dev-mechanic@preheat.local', password: 'devmechanic123' },
+    }
+    void (async () => {
+      try {
+        const { accessToken, refreshToken } = await authApi.login(creds[role])
+        await storage.setTokens(accessToken, refreshToken)
+        const me = await authApi.me()
+        setUser(me)
+      } catch (e) {
+        console.warn('[devLogin] failed — run pnpm db:seed in services/api first:', e)
+      }
+    })()
   }, [])
 
   return (
