@@ -49,9 +49,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
+  let sentToken: string | null = null
   if (auth) {
-    const token = await storage.getAccessToken()
-    if (token) headers['Authorization'] = `Bearer ${token}`
+    sentToken = await storage.getAccessToken()
+    if (sentToken) headers['Authorization'] = `Bearer ${sentToken}`
   }
 
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -61,7 +62,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   })
 
   // Token expired — attempt refresh once
-  if (res.status === 401 && auth) {
+  // Only refresh if we actually sent a token; no token = not a session-expiry scenario
+  if (res.status === 401 && auth && sentToken) {
     if (isRefreshing) {
       return new Promise<T>((resolve, reject) => {
         pendingRequests.push((_token) => {
