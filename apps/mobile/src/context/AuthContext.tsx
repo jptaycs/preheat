@@ -22,6 +22,7 @@ interface AuthContextValue {
     licenseNumber?: string
   }) => Promise<void>
   logout: () => Promise<void>
+  devLogin: (role: 'pilot' | 'mechanic') => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -74,6 +75,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
+  const devLogin = useCallback((role: 'pilot' | 'mechanic') => {
+    setUser({
+      id: `dev-${role}`,
+      name: role === 'pilot' ? 'Dev Pilot' : 'Dev Mechanic',
+      email: `dev-${role}@local.dev`,
+      role,
+      licenseNumber: null,
+    })
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -83,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        devLogin,
       }}
     >
       {children}

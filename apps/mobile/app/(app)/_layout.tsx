@@ -18,7 +18,7 @@ export default function AppLayout() {
       <Tabs.Screen name="track" options={{ title: 'Track' }} />
       <Tabs.Screen name="alerts" options={{ title: 'Alerts' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      <Tabs.Screen name="request" options={{ href: null }} />
+      <Tabs.Screen name="request" options={{ title: 'Request', tabBarButton: () => null }} />
     </Tabs>
   )
 }

@@ -7,9 +7,9 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
   Alert,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { aircraftApi, ApiError } from '../../src/lib/api'
