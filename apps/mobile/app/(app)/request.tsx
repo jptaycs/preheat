@@ -8,20 +8,125 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { aircraftApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem } from '../../src/lib/api'
 import { colors, font, radius } from '../../src/theme'
+
+// ── Dropdown helpers ────────────────────────────────────────────────────────
+
+function range(start: number, end: number, pad = 2): string[] {
+  const out: string[] = []
+  for (let i = start; i <= end; i++) out.push(String(i).padStart(pad, '0'))
+  return out
+}
+
+const MONTHS = [
+  '01 – Jan',
+  '02 – Feb',
+  '03 – Mar',
+  '04 – Apr',
+  '05 – May',
+  '06 – Jun',
+  '07 – Jul',
+  '08 – Aug',
+  '09 – Sep',
+  '10 – Oct',
+  '11 – Nov',
+  '12 – Dec',
+]
+
+function daysInMonth(year: string, month: string): string[] {
+  const y = parseInt(year) || new Date().getUTCFullYear()
+  const m = parseInt(month) || 1
+  const count = new Date(y, m, 0).getDate()
+  return range(1, count)
+}
+
+const now = new Date()
+const YEARS = range(now.getUTCFullYear(), now.getUTCFullYear() + 1, 4)
+const HOURS = range(0, 23)
+const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
+
+interface DropdownProps {
+  label: string
+  value: string
+  placeholder: string
+  options: string[]
+  onSelect: (v: string) => void
+}
+
+function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProps) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <TouchableOpacity style={styles.dropBtn} onPress={() => setOpen(true)} activeOpacity={0.8}>
+        <Text style={value ? styles.dropValue : styles.dropPlaceholder}>
+          {value || placeholder}
+        </Text>
+        <Text style={styles.dropArrow}>▾</Text>
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOpen(false)}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{label}</Text>
+              <TouchableOpacity onPress={() => setOpen(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item}
+              style={styles.modalList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.modalItem, item === value && styles.modalItemSelected]}
+                  onPress={() => {
+                    onSelect(item)
+                    setOpen(false)
+                  }}
+                >
+                  <Text
+                    style={[styles.modalItemText, item === value && styles.modalItemTextSelected]}
+                  >
+                    {item}
+                  </Text>
+                  {item === value && <Text style={styles.modalCheck}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  )
+}
+
+// ── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RequestScreen() {
   const router = useRouter()
 
   const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(null)
-  const [engineStartDate, setEngineStartDate] = useState('')
-  const [engineStartTime, setEngineStartTime] = useState('')
+
+  const [year, setYear] = useState('')
+  const [month, setMonth] = useState('')
+  const [day, setDay] = useState('')
+  const [hour, setHour] = useState('')
+  const [minute, setMinute] = useState('')
+
   const [notes, setNotes] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingAircraft, setIsLoadingAircraft] = useState(true)
@@ -29,6 +134,19 @@ export default function RequestScreen() {
   const [success, setSuccess] = useState<{ queuePosition: number; assignedTime: string } | null>(
     null,
   )
+
+  // Reset day if it exceeds days-in-month when year/month changes
+  const availableDays = daysInMonth(year, month.slice(0, 2))
+  const resetDayIfNeeded = useCallback(
+    (d: string) => {
+      if (d && !availableDays.includes(d)) setDay('')
+    },
+    [availableDays],
+  )
+
+  useEffect(() => {
+    resetDayIfNeeded(day)
+  }, [year, month, resetDayIfNeeded, day])
 
   useEffect(() => {
     void (async () => {
@@ -50,16 +168,17 @@ export default function RequestScreen() {
       setError('Please select an aircraft')
       return
     }
-    if (!engineStartDate || !engineStartTime) {
-      setError('Please enter engine start date and time (YYYY-MM-DD and HH:MM)')
+    if (!year || !month || !day) {
+      setError('Please select a date')
+      return
+    }
+    if (!hour || !minute) {
+      setError('Please select a time')
       return
     }
 
-    const engineStartISO = `${engineStartDate}T${engineStartTime}:00.000Z`
-    if (isNaN(Date.parse(engineStartISO))) {
-      setError('Invalid date/time. Use YYYY-MM-DD and HH:MM format.')
-      return
-    }
+    const monthNum = month.slice(0, 2)
+    const engineStartISO = `${year}-${monthNum}-${day}T${hour}:${minute}:00.000Z`
 
     setIsLoading(true)
     try {
@@ -113,7 +232,6 @@ export default function RequestScreen() {
         <Text style={styles.pageTitle}>Request Preheat</Text>
         <Text style={styles.pageSub}>Book a slot for engine preheat service</Text>
 
-        {/* Error */}
         {error ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
@@ -153,32 +271,69 @@ export default function RequestScreen() {
           )}
         </View>
 
-        {/* Date */}
+        {/* Date pickers */}
         <View style={styles.section}>
           <Text style={styles.label}>ENGINE START DATE (UTC)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.t3}
-            value={engineStartDate}
-            onChangeText={setEngineStartDate}
-            autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
-          />
+          <View style={styles.dateRow}>
+            <View style={styles.dateColWide}>
+              <Text style={styles.subLabel}>Month</Text>
+              <Dropdown
+                label="Month"
+                value={month}
+                placeholder="Month"
+                options={MONTHS}
+                onSelect={setMonth}
+              />
+            </View>
+            <View style={styles.dateColNarrow}>
+              <Text style={styles.subLabel}>Day</Text>
+              <Dropdown
+                label="Day"
+                value={day}
+                placeholder="Day"
+                options={availableDays}
+                onSelect={setDay}
+              />
+            </View>
+            <View style={styles.dateColNarrow}>
+              <Text style={styles.subLabel}>Year</Text>
+              <Dropdown
+                label="Year"
+                value={year}
+                placeholder="Year"
+                options={YEARS}
+                onSelect={setYear}
+              />
+            </View>
+          </View>
         </View>
 
-        {/* Time */}
+        {/* Time pickers */}
         <View style={styles.section}>
           <Text style={styles.label}>ENGINE START TIME (UTC)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="HH:MM  (e.g. 07:30)"
-            placeholderTextColor={colors.t3}
-            value={engineStartTime}
-            onChangeText={setEngineStartTime}
-            autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
-          />
+          <View style={styles.timeRow}>
+            <View style={styles.timeCol}>
+              <Text style={styles.subLabel}>Hour (00–23)</Text>
+              <Dropdown
+                label="Hour"
+                value={hour}
+                placeholder="HH"
+                options={HOURS}
+                onSelect={setHour}
+              />
+            </View>
+            <Text style={styles.timeSep}>:</Text>
+            <View style={styles.timeCol}>
+              <Text style={styles.subLabel}>Minute</Text>
+              <Dropdown
+                label="Minute"
+                value={minute}
+                placeholder="MM"
+                options={MINUTES}
+                onSelect={setMinute}
+              />
+            </View>
+          </View>
           <Text style={styles.hint}>
             Slot must be at least 35 min in the future. Booking opens at 19:00 UTC the day before.
           </Text>
@@ -258,6 +413,7 @@ const styles = StyleSheet.create({
 
   section: { marginBottom: 20 },
   label: { fontSize: 11, fontWeight: '700', color: colors.t2, letterSpacing: 0.8, marginBottom: 8 },
+  subLabel: { fontSize: 10, color: colors.t3, marginBottom: 4, fontWeight: '600' },
 
   aircraftCard: {
     flexDirection: 'row',
@@ -283,6 +439,77 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: font.base, color: colors.t2, marginBottom: 8 },
   emptyLink: { fontSize: font.base, color: colors.blue, fontWeight: '600' },
+
+  // Date row
+  dateRow: { flexDirection: 'row', gap: 8 },
+  dateColWide: { flex: 2 },
+  dateColNarrow: { flex: 1 },
+
+  // Time row
+  timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  timeCol: { flex: 1 },
+  timeSep: {
+    fontSize: font.xl,
+    color: colors.t2,
+    fontWeight: '700',
+    paddingBottom: 10,
+    paddingHorizontal: 2,
+  },
+
+  // Dropdown button
+  dropBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.s2,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 13,
+  },
+  dropValue: { fontSize: font.md, color: colors.text, flex: 1 },
+  dropPlaceholder: { fontSize: font.md, color: colors.t3, flex: 1 },
+  dropArrow: { fontSize: 12, color: colors.t2, marginLeft: 4 },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.s1,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: { fontSize: font.md, fontWeight: '700', color: colors.text },
+  modalClose: { fontSize: 18, color: colors.t2, padding: 4 },
+  modalList: { paddingVertical: 4 },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border + '44',
+  },
+  modalItemSelected: { backgroundColor: colors.blueD },
+  modalItemText: { fontSize: font.base, color: colors.text },
+  modalItemTextSelected: { color: colors.blue, fontWeight: '700' },
+  modalCheck: { fontSize: 16, color: colors.blue },
 
   input: {
     backgroundColor: colors.s2,
