@@ -16,7 +16,7 @@ import { useAuth, ApiError } from '../../src/context/AuthContext'
 import { colors, radius, font } from '../../src/theme'
 
 export default function LoginScreen() {
-  const { login } = useAuth()
+  const { login, devLogin } = useAuth()
   const router = useRouter()
 
   const [email, setEmail] = useState('')
@@ -177,6 +177,37 @@ export default function LoginScreen() {
           <Text style={styles.biometricIcon}>👆</Text>
           <Text style={styles.biometricLabel}>Use biometric login</Text>
         </TouchableOpacity>
+
+        {/* DEV SHORTCUTS — only in development builds */}
+        {__DEV__ && (
+          <View style={styles.devPanel}>
+            <Text style={styles.devTitle}>⚡ DEV SHORTCUTS</Text>
+            <View style={styles.devRow}>
+              <TouchableOpacity
+                style={[styles.devBtn, styles.devBtnPilot]}
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                onPress={() => {
+                  devLogin('pilot')
+                  void router.replace('/(app)')
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.devBtnText}>✈ Pilot</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.devBtn, styles.devBtnMechanic]}
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                onPress={() => {
+                  devLogin('mechanic')
+                  void router.replace('/(app)')
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.devBtnText}>🔧 Mechanic</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -274,4 +305,30 @@ const styles = StyleSheet.create({
   biometricWrap: { alignItems: 'center', marginTop: 28 },
   biometricIcon: { fontSize: 38 },
   biometricLabel: { fontSize: 11, color: colors.t3, marginTop: 6 },
+
+  devPanel: {
+    marginTop: 36,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 20,
+  },
+  devTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.t3,
+    letterSpacing: 1.2,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  devRow: { flexDirection: 'row', gap: 10 },
+  devBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  devBtnPilot: { backgroundColor: colors.blueD, borderColor: colors.blue },
+  devBtnMechanic: { backgroundColor: colors.orangeD, borderColor: colors.orange },
+  devBtnText: { color: colors.text, fontSize: font.sm, fontWeight: '700' },
 })

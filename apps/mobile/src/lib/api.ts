@@ -1,8 +1,7 @@
 import { storage } from './storage'
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-const BASE_URL: string =
-  (process.env.EXPO_PUBLIC_API_URL as string | undefined) ?? 'http://localhost:4000'
+const BASE_URL: string = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000'
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
@@ -133,3 +132,123 @@ export const authApi = {
 }
 
 export { ApiError }
+
+// ── Domain types ───────────────────────────────────────────────────────────────
+
+export interface AircraftItem {
+  id: string
+  tailNumber: string
+  type: string
+  createdAt: string
+}
+
+export interface PreheatRequest {
+  id: string
+  queuePosition: number
+  requestDate: string
+  engineStartTime: string
+  assignedTime: string
+  confirmOpensAt: string
+  confirmDeadline: string
+  status: string
+  tailNumber?: string
+  aircraftType?: string
+  notes?: string | null
+  confirmedAt?: string | null
+  cancelledAt?: string | null
+  createdAt: string
+}
+
+export interface QueueEntry {
+  id: string
+  queuePosition: number
+  engineStartTime: string
+  assignedTime: string
+  confirmOpensAt: string
+  confirmDeadline: string
+  status: string
+  pilotFirstName: string
+  tailNumber: string
+  aircraftType: string
+  isMine: boolean
+}
+
+export interface QueueResponse {
+  date: string
+  entries: QueueEntry[]
+  stats: {
+    waiting: number
+    confirmed: number
+    active: number
+    completed: number
+  }
+}
+
+export interface SessionReading {
+  id: string
+  tempCelsius: number
+  recordedAt: string
+}
+
+export interface SessionDetail {
+  id: string
+  requestId: string
+  currentTempCelsius: number | null
+  startedAt: string
+  completedAt: string | null
+  readings: SessionReading[]
+}
+
+// ── Aircraft endpoints ─────────────────────────────────────────────────────────
+
+export const aircraftApi = {
+  list() {
+    return request<AircraftItem[]>('/aircraft')
+  },
+  create(body: { tailNumber: string; type: string }) {
+    return request<AircraftItem>('/aircraft', { method: 'POST', body })
+  },
+  remove(id: string) {
+    return request<void>('/aircraft/' + id, { method: 'DELETE' })
+  },
+}
+
+// ── Preheat request endpoints ──────────────────────────────────────────────────
+
+export const preheatRequestsApi = {
+  list(params?: { date?: string }) {
+    const qs = params?.date ? `?date=${params.date}` : ''
+    return request<PreheatRequest[]>(`/preheat-requests${qs}`)
+  },
+  get(id: string) {
+    return request<PreheatRequest>(`/preheat-requests/${id}`)
+  },
+  create(body: { aircraftId: string; engineStartTime: string; notes?: string }) {
+    return request<PreheatRequest>('/preheat-requests', { method: 'POST', body })
+  },
+  confirm(id: string) {
+    return request<{ success: boolean; confirmedAt: string }>(`/preheat-requests/${id}/confirm`, {
+      method: 'POST',
+    })
+  },
+  cancel(id: string) {
+    return request<{ success: boolean }>(`/preheat-requests/${id}`, { method: 'DELETE' })
+  },
+}
+
+// ── Queue endpoints ────────────────────────────────────────────────────────────
+
+export const queueApi = {
+  get(params?: { date?: string }) {
+    const qs = params?.date ? `?date=${params.date}` : ''
+    return request<QueueResponse>(`/queue${qs}`)
+  },
+}
+
+// ── Session endpoints ──────────────────────────────────────────────────────────
+
+export const sessionsApi = {
+  getByRequest(requestId: string) {
+    return request<SessionDetail>(`/preheat-sessions/by-request/${requestId}`)
+  },
+}
