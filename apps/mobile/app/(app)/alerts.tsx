@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import { useRouter } from 'expo-router'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { colors, font, radius } from '../../src/theme'
 
@@ -16,14 +17,16 @@ interface AlertItem {
   title: string
   body: string
   timestamp: Date
+  unread: boolean
+  urgent?: boolean
 }
 
 const ALERT_STYLE: Record<AlertType, { icon: string; color: string; bg: string }> = {
-  confirm_reminder: { icon: '⚠️', color: colors.yellow, bg: colors.yellow + '1A' },
+  confirm_reminder: { icon: '⏰', color: colors.red, bg: colors.redD },
   slot_cancelled: { icon: '❌', color: colors.red, bg: colors.redD },
-  session_started: { icon: '🔥', color: colors.blue, bg: colors.blueG },
+  session_started: { icon: '🔥', color: colors.orange, bg: colors.orangeD },
   session_completed: { icon: '✅', color: colors.green, bg: colors.greenD },
-  info: { icon: 'ℹ️', color: colors.t2, bg: colors.s2 },
+  info: { icon: '📋', color: colors.blue, bg: colors.blueD },
 }
 
 function fmtRelative(date: Date): string {
@@ -36,6 +39,15 @@ function fmtRelative(date: Date): string {
   return date.toLocaleDateString()
 }
 
+function isToday(date: Date): boolean {
+  const now = new Date()
+  return (
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  )
+}
+
 let idCounter = 100
 
 const INITIAL_ALERTS: AlertItem[] = [
@@ -45,21 +57,29 @@ const INITIAL_ALERTS: AlertItem[] = [
     title: 'Welcome to AeroFluxPro',
     body: 'Alerts from the preheat system will appear here.',
     timestamp: new Date(Date.now() - 3600000),
+    unread: false,
   },
 ]
 
 export default function AlertsScreen() {
+  const router = useRouter()
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS)
 
-  function addAlert(type: AlertType, title: string, body: string) {
+  function addAlert(type: AlertType, title: string, body: string, urgent = false) {
     const newAlert: AlertItem = {
       id: String(++idCounter),
       type,
       title,
       body,
       timestamp: new Date(),
+      unread: true,
+      urgent,
     }
     setAlerts((prev) => [newAlert, ...prev])
+  }
+
+  function markAllRead() {
+    setAlerts((prev) => prev.map((a) => ({ ...a, unread: false })))
   }
 
   useWebSocket({
@@ -88,8 +108,11 @@ export default function AlertsScreen() {
       const d = data as { deadline?: string } | null
       addAlert(
         'confirm_reminder',
-        'Confirm Your Slot',
-        d?.deadline ? `Deadline: ${d.deadline}` : 'Your confirmation window is open.',
+        'Confirmation Required',
+        d?.deadline
+          ? `Confirm before ${d.deadline} or preheat will be canceled.`
+          : 'Your confirmation window is open.',
+        true,
       )
     },
     'slot.cancelled': (data: unknown) => {
@@ -102,33 +125,36 @@ export default function AlertsScreen() {
     },
   })
 
-  function renderItem({ item }: { item: AlertItem }) {
+  const urgentAlerts = alerts.filter((a) => a.urgent && a.unread)
+  const todayAlerts = alerts.filter((a) => isToday(a.timestamp) && !a.urgent)
+  const olderAlerts = alerts.filter((a) => !isToday(a.timestamp) && !a.urgent)
+  const hasUnread = alerts.some((a) => a.unread)
+
+  function renderAlertItem(item: AlertItem) {
     const style = ALERT_STYLE[item.type]
     return (
-      <View
-        style={[styles.alertCard, { backgroundColor: style.bg, borderColor: style.color + '44' }]}
-      >
-        <View style={styles.alertIconBox}>
-          <Text style={styles.alertIcon}>{style.icon}</Text>
+      <View style={styles.nItem}>
+        <View style={[styles.nIconBox, { backgroundColor: style.bg }]}>
+          <Text style={styles.nIcon}>{style.icon}</Text>
         </View>
-        <View style={styles.alertContent}>
-          <View style={styles.alertTopRow}>
-            <Text style={[styles.alertTitle, { color: style.color }]}>{item.title}</Text>
-            <Text style={styles.alertTime}>{fmtRelative(item.timestamp)}</Text>
-          </View>
-          <Text style={styles.alertBody}>{item.body}</Text>
+        <View style={styles.nBody}>
+          <Text style={styles.nTitle}>{item.title}</Text>
+          <Text style={styles.nMsg}>{item.body}</Text>
+          <Text style={styles.nTime}>{fmtRelative(item.timestamp)}</Text>
         </View>
+        {item.unread && <View style={[styles.nDot, { backgroundColor: style.color }]} />}
       </View>
     )
   }
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Header */}
       <View style={styles.headerBar}>
-        <Text style={styles.screenTitle}>Alerts</Text>
-        {alerts.length > 0 && (
-          <TouchableOpacity onPress={() => setAlerts([])}>
-            <Text style={styles.clearBtn}>Clear All</Text>
+        <Text style={styles.screenTitle}>Notifications</Text>
+        {hasUnread && (
+          <TouchableOpacity onPress={markAllRead}>
+            <Text style={styles.markReadBtn}>Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -142,12 +168,44 @@ export default function AlertsScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={alerts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-        />
+        <ScrollView contentContainerStyle={styles.listContent}>
+          {/* Urgent alerts */}
+          {urgentAlerts.map((alertItem) => {
+            const s = ALERT_STYLE[alertItem.type]
+            return (
+              <TouchableOpacity
+                key={alertItem.id}
+                style={styles.urgentCard}
+                onPress={() => router.push('/(app)/confirm')}
+              >
+                <Text style={styles.urgentLabel}>🚨 URGENT — TAP TO RESPOND</Text>
+                <View style={styles.nItem}>
+                  <View style={[styles.nIconBox, { backgroundColor: s.bg }]}>
+                    <Text style={styles.nIcon}>{s.icon}</Text>
+                  </View>
+                  <View style={styles.nBody}>
+                    <Text style={styles.nTitle}>{alertItem.title}</Text>
+                    <Text style={styles.nMsg}>{alertItem.body}</Text>
+                    <Text style={styles.nTime}>{fmtRelative(alertItem.timestamp)}</Text>
+                  </View>
+                  <View style={[styles.nDot, { backgroundColor: colors.red }]} />
+                </View>
+              </TouchableOpacity>
+            )
+          })}
+
+          {/* Today */}
+          {todayAlerts.length > 0 && <Text style={styles.sectionLabel}>Today</Text>}
+          {todayAlerts.map((a) => (
+            <React.Fragment key={a.id}>{renderAlertItem(a)}</React.Fragment>
+          ))}
+
+          {/* Earlier */}
+          {olderAlerts.length > 0 && <Text style={styles.sectionLabel}>Earlier</Text>}
+          {olderAlerts.map((a) => (
+            <React.Fragment key={a.id}>{renderAlertItem(a)}</React.Fragment>
+          ))}
+        </ScrollView>
       )}
     </SafeAreaView>
   )
@@ -162,29 +220,68 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 12,
   },
-  screenTitle: { fontSize: font.xxl, fontWeight: '800', color: colors.text },
-  clearBtn: { fontSize: font.base, color: colors.red },
+  screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+  markReadBtn: { fontSize: 12, color: colors.blue, fontWeight: '600' },
   listContent: { padding: 16, paddingBottom: 40 },
-  alertCard: {
-    flexDirection: 'row',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 10,
-    gap: 12,
-  },
-  alertIconBox: { width: 36, alignItems: 'center', paddingTop: 2 },
-  alertIcon: { fontSize: 22 },
-  alertContent: { flex: 1 },
-  alertTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+
+  // Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.t3,
+    marginTop: 12,
     marginBottom: 4,
   },
-  alertTitle: { fontSize: font.base, fontWeight: '700', flex: 1, marginRight: 8 },
-  alertTime: { fontSize: font.sm, color: colors.t3 },
-  alertBody: { fontSize: font.sm, color: colors.t2, lineHeight: 20 },
+
+  // Urgent card
+  urgentCard: {
+    backgroundColor: 'rgba(240,82,82,0.07)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.redD,
+    padding: 12,
+    marginBottom: 12,
+  },
+  urgentLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: colors.red,
+    marginBottom: 8,
+  },
+
+  // Notification item
+  nItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  nIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nIcon: { fontSize: 17 },
+  nBody: { flex: 1 },
+  nTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
+  nMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
+  nTime: { fontSize: 11, color: colors.t3, marginTop: 3 },
+  nDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+
+  // Empty
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 16 },
   emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
