@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { db } from '../db/client.js'
 import { broadcast } from '../lib/broadcast.js'
 import { sendPushNotification } from '../lib/push.js'
+import { JOB_INTERVAL_MS } from '../config/queue.js'
 
 // ── Auto-cancel job ──────────────────────────────────────────────────────────
 //
@@ -18,7 +19,7 @@ import { sendPushNotification } from '../lib/push.js'
 // does not block system cancellations, only pilot "jump-the-line" attempts).
 //
 export function startAutoCancelJob(app: FastifyInstance) {
-  const INTERVAL_MS = 60_000 // run every minute
+  const INTERVAL_MS = JOB_INTERVAL_MS
 
   async function run() {
     try {

@@ -74,9 +74,8 @@ export default function Settings() {
 
       <div style={s.notice}>
         <p style={s.noticeText}>
-          Settings management (editable slot duration, operating hours, max queue length) will be
-          available in a future session. These values are currently configured in the API source
-          code.
+          These values are configured in <code>services/api/src/config/queue.ts</code>. Editable
+          settings via this UI will be available in a future update.
         </p>
       </div>
     </div>

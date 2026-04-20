@@ -4,13 +4,13 @@ import { db } from '../db/client.js'
 import { authenticate } from '../middleware/authenticate.js'
 import { broadcast } from '../lib/broadcast.js'
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
-const PREHEAT_DURATION_MIN = 20 // avg of 10–25 min OAT range
-const SLOT_SPACING_MIN = 15 // min gap between consecutive engine start times (rule #2)
-const CONFIRM_OPENS_MIN = 40 // confirmation window opens this many min before engine start
-const CONFIRM_DEADLINE_MIN = 30 // confirmation window closes (must confirm BEFORE this point)
-const BOOKING_OPENS_HOUR = 19 // local hour at which booking opens for the next day (rule #1)
+import {
+  PREHEAT_DURATION_MIN,
+  SLOT_SPACING_MIN,
+  CONFIRM_OPENS_MIN,
+  CONFIRM_DEADLINE_MIN,
+  BOOKING_OPENS_HOUR,
+} from '../config/queue.js'
 
 function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60_000)

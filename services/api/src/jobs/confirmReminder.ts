@@ -1,12 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { db } from '../db/client.js'
 import { sendPushNotification } from '../lib/push.js'
+import { JOB_INTERVAL_MS } from '../config/queue.js'
 
 // Track which requests have already been notified so we don't spam
 const notified = new Set<string>()
 
 export function startConfirmReminderJob(app: FastifyInstance) {
-  const INTERVAL_MS = 60_000
+  const INTERVAL_MS = JOB_INTERVAL_MS
 
   async function run() {
     try {
