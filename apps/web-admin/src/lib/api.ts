@@ -216,6 +216,6 @@ export const adminApi = {
 
 export const preheatRequestsApi = {
   cancel(requestId: string): Promise<void> {
-    return request(`/preheat-requests/${requestId}/cancel`, { method: 'POST' })
+    return request(`/preheat-requests/${requestId}`, { method: 'DELETE' })
   },
 }
