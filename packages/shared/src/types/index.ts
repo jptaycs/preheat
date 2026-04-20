@@ -1,6 +1,6 @@
 // ── User ──────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'pilot' | 'dispatcher' | 'admin'
+export type UserRole = 'pilot' | 'mechanic' | 'dispatcher' | 'admin'
 
 export interface User {
   id: string
@@ -22,7 +22,7 @@ export interface Aircraft {
 
 // ── Preheat Request ───────────────────────────────────────────────────────────
 
-export type PreheatRequestStatus = 'waiting' | 'confirmed' | 'active' | 'done' | 'canceled'
+export type PreheatRequestStatus = 'waiting' | 'confirmed' | 'active' | 'completed' | 'cancelled'
 
 export interface PreheatRequest {
   id: string
@@ -50,13 +50,15 @@ export interface PreheatRequestWithDetails extends PreheatRequest {
 export interface PreheatSession {
   id: string
   requestId: string
+  mechanicId?: string
+  currentTempCelsius: number | null
   startedAt: string
   completedAt: string | null
-  ambientTemp: number // °C
-  startTemp: number // °C
-  targetTemp: number // °C
-  currentTemp: number // °C
-  progressPct: number // 0–100
+  readings: Array<{
+    id: string
+    tempCelsius: number
+    recordedAt: string
+  }>
 }
 
 // ── Notification ──────────────────────────────────────────────────────────────
@@ -65,9 +67,9 @@ export type NotificationType =
   | 'confirmation_required'
   | 'schedule_assigned'
   | 'preheat_started'
-  | 'preheat_done'
+  | 'preheat_completed'
   | 'queue_changed'
-  | 'slot_canceled'
+  | 'slot_cancelled'
 
 export interface Notification {
   id: string
