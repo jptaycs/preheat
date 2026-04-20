@@ -13,16 +13,16 @@ A running log of all development sessions from start to finish. Each session has
 | 003 | Repo Structure & Tooling Setup                     | 0 — Foundation       | ✅ Completed  |
 | 004 | Backend: Auth API                                  | 1 — Auth             | ✅ Completed  |
 | 005 | Mobile: Login & Registration Screens               | 1 — Auth             | ✅ Completed  |
-| 006 | Backend: Aircraft & Preheat Request API            | 2 — Request & Queue  | ⬜ Incomplete |
-| 007 | Mobile: Request Preheat Screen                     | 2 — Request & Queue  | ⬜ Incomplete |
-| 008 | Mobile: Queue Screen (Real-Time)                   | 2 — Request & Queue  | ⬜ Incomplete |
-| 009 | Backend: Confirmation & Auto-Cancel Logic          | 3 — Confirmation     | ⬜ Incomplete |
-| 010 | Mobile: Confirm Screen & Push Notifications        | 3 — Confirmation     | ⬜ Incomplete |
-| 011 | Backend: Preheat Session & Temperature Data        | 4 — Live Tracking    | ⬜ Incomplete |
-| 012 | Mobile: Track Screen (Live)                        | 4 — Live Tracking    | ⬜ Incomplete |
-| 013 | Mobile: Profile, Aircraft Management & Preferences | 5 — Profile          | ⬜ Incomplete |
-| 014 | Web Admin: Dispatcher Dashboard                    | 6 — Dispatcher Panel | ⬜ Incomplete |
-| 015 | Web Admin: Settings & User Management              | 6 — Dispatcher Panel | ⬜ Incomplete |
+| 006 | Backend: Aircraft & Preheat Request API            | 2 — Request & Queue  | ✅ Completed  |
+| 007 | Mobile: Request Preheat Screen                     | 2 — Request & Queue  | ✅ Completed  |
+| 008 | Mobile: Queue Screen (Real-Time)                   | 2 — Request & Queue  | ✅ Completed  |
+| 009 | Backend: Confirmation & Auto-Cancel Logic          | 3 — Confirmation     | ✅ Completed  |
+| 010 | Mobile: Confirm Screen & Push Notifications        | 3 — Confirmation     | ✅ Completed  |
+| 011 | Backend: Preheat Session & Temperature Data        | 4 — Live Tracking    | ✅ Completed  |
+| 012 | Mobile: Track Screen (Live)                        | 4 — Live Tracking    | ✅ Completed  |
+| 013 | Mobile: Profile, Aircraft Management & Preferences | 5 — Profile          | ✅ Completed  |
+| 014 | Web Admin: Dispatcher Dashboard                    | 6 — Dispatcher Panel | ✅ Completed  |
+| 015 | Web Admin: Settings & User Management              | 6 — Dispatcher Panel | ✅ Completed  |
 | 016 | End-to-End Testing                                 | 7 — QA & Polish      | ⬜ Incomplete |
 | 017 | Accessibility, Performance & Edge Cases            | 7 — QA & Polish      | ⬜ Incomplete |
 | 018 | Beta Release                                       | 8 — Launch           | ⬜ Incomplete |
