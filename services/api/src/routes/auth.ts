@@ -162,9 +162,15 @@ export async function authRoutes(app: FastifyInstance) {
       email: string
       role: string
       licenseNumber: string | null
+      notificationPrefs: {
+        scheduleAlerts: boolean
+        confirmReminder: boolean
+        preheatProgress: boolean
+        queueChanges: boolean
+      }
       createdAt: string
     }>(
-      `SELECT id, name, email, role, license_number AS "licenseNumber", created_at AS "createdAt"
+      `SELECT id, name, email, role, license_number AS "licenseNumber", notification_prefs AS "notificationPrefs", created_at AS "createdAt"
        FROM users WHERE id = $1`,
       [req.userId],
     )

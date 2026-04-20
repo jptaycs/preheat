@@ -8,6 +8,12 @@ interface User {
   email: string
   role: string
   licenseNumber: string | null
+  notificationPrefs?: {
+    scheduleAlerts: boolean
+    confirmReminder: boolean
+    preheatProgress: boolean
+    queueChanges: boolean
+  }
 }
 
 interface AuthContextValue {

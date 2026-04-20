@@ -13,8 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
-import { aircraftApi, ApiError } from '../../src/lib/api'
-import type { AircraftItem } from '../../src/lib/api'
+import { aircraftApi, preferencesApi, ApiError } from '../../src/lib/api'
+import type { AircraftItem, NotificationPrefs } from '../../src/lib/api'
 import { colors, font, radius } from '../../src/theme'
 
 const ROLE_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
@@ -47,11 +47,13 @@ export default function ProfileScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
-  // Notification toggles (local UI state)
-  const [scheduleAlerts, setScheduleAlerts] = useState(true)
-  const [confirmReminder, setConfirmReminder] = useState(true)
-  const [preheatProgress, setPreheatProgress] = useState(true)
-  const [queueChanges, setQueueChanges] = useState(false)
+  // Notification preferences (loaded from API)
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
+    scheduleAlerts: true,
+    confirmReminder: true,
+    preheatProgress: true,
+    queueChanges: false,
+  })
 
   const fetchAircraft = useCallback(async () => {
     try {
@@ -69,7 +71,10 @@ export default function ProfileScreen() {
     useCallback(() => {
       setLoadingAircraft(true)
       void fetchAircraft()
-    }, [fetchAircraft]),
+      if (user?.notificationPrefs) {
+        setNotifPrefs(user.notificationPrefs)
+      }
+    }, [fetchAircraft, user?.notificationPrefs]),
   )
 
   async function handleAddAircraft() {
@@ -116,6 +121,16 @@ export default function ProfileScreen() {
         },
       },
     ])
+  }
+
+  async function handleTogglePref(key: keyof NotificationPrefs, value: boolean) {
+    const prev = { ...notifPrefs }
+    setNotifPrefs({ ...notifPrefs, [key]: value })
+    try {
+      await preferencesApi.update({ [key]: value })
+    } catch {
+      setNotifPrefs(prev)
+    }
   }
 
   async function handleSignOut() {
@@ -200,8 +215,8 @@ export default function ProfileScreen() {
               <Text style={styles.settingsSub}>When preheat is assigned</Text>
             </View>
             <Switch
-              value={scheduleAlerts}
-              onValueChange={setScheduleAlerts}
+              value={notifPrefs.scheduleAlerts}
+              onValueChange={(v) => void handleTogglePref('scheduleAlerts', v)}
               trackColor={{ false: colors.s3, true: colors.blue }}
               thumbColor="#fff"
             />
@@ -212,8 +227,8 @@ export default function ProfileScreen() {
               <Text style={styles.settingsSub}>30 min before departure</Text>
             </View>
             <Switch
-              value={confirmReminder}
-              onValueChange={setConfirmReminder}
+              value={notifPrefs.confirmReminder}
+              onValueChange={(v) => void handleTogglePref('confirmReminder', v)}
               trackColor={{ false: colors.s3, true: colors.blue }}
               thumbColor="#fff"
             />
@@ -224,8 +239,8 @@ export default function ProfileScreen() {
               <Text style={styles.settingsSub}>Started / Completed</Text>
             </View>
             <Switch
-              value={preheatProgress}
-              onValueChange={setPreheatProgress}
+              value={notifPrefs.preheatProgress}
+              onValueChange={(v) => void handleTogglePref('preheatProgress', v)}
               trackColor={{ false: colors.s3, true: colors.blue }}
               thumbColor="#fff"
             />
@@ -236,8 +251,8 @@ export default function ProfileScreen() {
               <Text style={styles.settingsSub}>Position updates</Text>
             </View>
             <Switch
-              value={queueChanges}
-              onValueChange={setQueueChanges}
+              value={notifPrefs.queueChanges}
+              onValueChange={(v) => void handleTogglePref('queueChanges', v)}
               trackColor={{ false: colors.s3, true: colors.blue }}
               thumbColor="#fff"
             />

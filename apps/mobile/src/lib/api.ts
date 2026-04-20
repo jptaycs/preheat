@@ -125,6 +125,7 @@ export const authApi = {
       email: string
       role: string
       licenseNumber: string | null
+      notificationPrefs: NotificationPrefs
     }>('/auth/me')
   },
 
@@ -134,6 +135,24 @@ export const authApi = {
 }
 
 export { ApiError }
+
+// ── Preferences endpoints ─────────────────────────────────────────────────────
+
+export interface NotificationPrefs {
+  scheduleAlerts: boolean
+  confirmReminder: boolean
+  preheatProgress: boolean
+  queueChanges: boolean
+}
+
+export const preferencesApi = {
+  update(prefs: Partial<NotificationPrefs>) {
+    return request<{ notificationPrefs: NotificationPrefs }>('/users/me/preferences', {
+      method: 'PATCH',
+      body: prefs,
+    })
+  },
+}
 
 // ── Domain types ───────────────────────────────────────────────────────────────
 

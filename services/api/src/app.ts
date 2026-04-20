@@ -62,6 +62,9 @@ export async function buildApp() {
   await app.register(preheatSessionRoutes, { prefix: '/preheat-sessions' })
   await app.register(adminRoutes, { prefix: '/admin' })
 
+  const { preferencesRoutes } = await import('./routes/preferences.js')
+  await app.register(preferencesRoutes, { prefix: '/users/me/preferences' })
+
   // ── Background jobs ──────────────────────────────────────────────────────────
   const { startAutoCancelJob } = await import('./jobs/autoCancel.js')
   const { startConfirmReminderJob } = await import('./jobs/confirmReminder.js')

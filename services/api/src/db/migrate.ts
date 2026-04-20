@@ -86,6 +86,9 @@ const sql = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_session_readings_session_id ON session_readings(session_id);
+
+  -- Notification preferences (JSONB with defaults)
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB NOT NULL DEFAULT '{"scheduleAlerts":true,"confirmReminder":true,"preheatProgress":true,"queueChanges":false}';
 `
 
 try {
