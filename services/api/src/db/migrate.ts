@@ -89,6 +89,25 @@ const sql = `
 
   -- Notification preferences (JSONB with defaults)
   ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB NOT NULL DEFAULT '{"scheduleAlerts":true,"confirmReminder":true,"preheatProgress":true,"queueChanges":false}';
+
+  -- Timer duration columns (idempotent)
+  DO $$ BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'preheat_sessions' AND column_name = 'duration_minutes'
+    ) THEN
+      ALTER TABLE preheat_sessions ADD COLUMN duration_minutes INTEGER NOT NULL DEFAULT 20;
+    END IF;
+  END $$;
+
+  DO $$ BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'preheat_requests' AND column_name = 'preferred_duration_minutes'
+    ) THEN
+      ALTER TABLE preheat_requests ADD COLUMN preferred_duration_minutes INTEGER;
+    END IF;
+  END $$;
 `
 
 try {

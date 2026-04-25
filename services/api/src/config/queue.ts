@@ -21,3 +21,12 @@ export const BOOKING_OPENS_HOUR = 19
 
 /** Background job polling interval in milliseconds */
 export const JOB_INTERVAL_MS = 60_000
+
+/** Default preheat timer duration in minutes */
+export const DEFAULT_DURATION_MIN = 20
+
+/** Minimum allowed duration in minutes */
+export const MIN_DURATION_MIN = 5
+
+/** Maximum allowed duration in minutes */
+export const MAX_DURATION_MIN = 60
