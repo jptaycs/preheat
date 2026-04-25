@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native'
-import { useRouter, Link } from 'expo-router'
+import { Link } from 'expo-router'
 import { useState } from 'react'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
@@ -18,7 +18,6 @@ import { Flame, Plane, Fingerprint, Wrench, Zap } from 'lucide-react-native'
 
 export default function LoginScreen() {
   const { login, devLogin } = useAuth()
-  const router = useRouter()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,7 +39,7 @@ export default function LoginScreen() {
     setErrors({})
     try {
       await login(email.trim(), password)
-      router.replace('/(app)')
+      // Guard in _layout.tsx handles navigation when isAuthenticated becomes true
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Something went wrong. Try again.'
       setErrors({ general: msg })
@@ -200,11 +199,7 @@ export default function LoginScreen() {
             <View style={styles.devRow}>
               <TouchableOpacity
                 style={[styles.devBtn, styles.devBtnPilot]}
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                onPress={() => {
-                  devLogin('pilot')
-                  void router.replace('/(app)')
-                }}
+                onPress={() => void devLogin('pilot')}
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -214,11 +209,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.devBtn, styles.devBtnMechanic]}
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                onPress={() => {
-                  devLogin('mechanic')
-                  void router.replace('/(app)')
-                }}
+                onPress={() => void devLogin('mechanic')}
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

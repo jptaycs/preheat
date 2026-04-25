@@ -68,7 +68,12 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/login',
     {
-      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      config: {
+        rateLimit: {
+          max: process.env.NODE_ENV === 'development' ? 100 : 5,
+          timeWindow: '15 minutes',
+        },
+      },
     },
     async (req, reply) => {
       const parsed = loginSchema.safeParse(req.body)

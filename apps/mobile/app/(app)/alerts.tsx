@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-react-native'

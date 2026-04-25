@@ -80,18 +80,20 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
       // ── Rule #1: Booking window opens at 19:00 local the day before ──────────
       // engineStartTime date's booking window opened at (engineStartDate - 1 day) at 19:00 UTC
       // NOTE: Using UTC for now; airport timezone config is a future enhancement
-      const engineStartDate = new Date(engineStartTime)
-      engineStartDate.setUTCHours(0, 0, 0, 0)
-      const bookingOpensAt = new Date(engineStartDate)
-      bookingOpensAt.setUTCDate(bookingOpensAt.getUTCDate() - 1)
-      bookingOpensAt.setUTCHours(BOOKING_OPENS_HOUR, 0, 0, 0)
+      if (process.env.NODE_ENV !== 'development') {
+        const engineStartDate = new Date(engineStartTime)
+        engineStartDate.setUTCHours(0, 0, 0, 0)
+        const bookingOpensAt = new Date(engineStartDate)
+        bookingOpensAt.setUTCDate(bookingOpensAt.getUTCDate() - 1)
+        bookingOpensAt.setUTCHours(BOOKING_OPENS_HOUR, 0, 0, 0)
 
-      if (now < bookingOpensAt) {
-        return reply.status(400).send({
-          statusCode: 400,
-          error: 'Bad Request',
-          message: `Booking for this date opens at 19:00 UTC the day before (${bookingOpensAt.toUTCString().slice(0, 16)}).`,
-        })
+        if (now < bookingOpensAt) {
+          return reply.status(400).send({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: `Booking for this date opens at 19:00 UTC the day before (${bookingOpensAt.toUTCString().slice(0, 16)}).`,
+          })
+        }
       }
 
       // ── Rule: no duplicate active request for same aircraft + date ───────────

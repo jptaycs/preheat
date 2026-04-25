@@ -28,7 +28,7 @@ interface AuthContextValue {
     licenseNumber?: string
   }) => Promise<void>
   logout: () => Promise<void>
-  devLogin: (role: 'pilot' | 'mechanic') => void
+  devLogin: (role: 'pilot' | 'mechanic') => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -81,21 +81,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
-  const devLogin = useCallback((role: 'pilot' | 'mechanic') => {
-    const creds = {
-      pilot: { email: 'dev-pilot@preheat.local', password: 'devpilot123' },
-      mechanic: { email: 'dev-mechanic@preheat.local', password: 'devmechanic123' },
+  const devLogin = useCallback(async (role: 'pilot' | 'mechanic') => {
+    const devUsers: Record<string, User> = {
+      pilot: {
+        id: 'dev-pilot-001',
+        name: 'Dev Pilot',
+        email: 'dev-pilot@preheat.local',
+        role: 'pilot',
+        licenseNumber: 'PPL-DEV-001',
+      },
+      mechanic: {
+        id: 'dev-mechanic-001',
+        name: 'Dev Mechanic',
+        email: 'dev-mechanic@preheat.local',
+        role: 'mechanic',
+        licenseNumber: null,
+      },
     }
-    void (async () => {
-      try {
-        const { accessToken, refreshToken } = await authApi.login(creds[role])
-        await storage.setTokens(accessToken, refreshToken)
-        const me = await authApi.me()
-        setUser(me)
-      } catch (e) {
-        console.warn('[devLogin] failed — run pnpm db:seed in services/api first:', e)
+
+    // Try real API first, fall back to offline dev user
+    try {
+      const creds = {
+        pilot: { email: 'dev-pilot@preheat.local', password: 'devpilot123' },
+        mechanic: { email: 'dev-mechanic@preheat.local', password: 'devmechanic123' },
       }
-    })()
+      const { accessToken, refreshToken } = await authApi.login(creds[role])
+      await storage.setTokens(accessToken, refreshToken)
+      const me = await authApi.me()
+      setUser(me)
+    } catch (e) {
+      console.warn('[devLogin] API unavailable — using offline dev user:', e)
+      await storage.setTokens('dev-fake-access-token', 'dev-fake-refresh-token')
+      setUser(devUsers[role])
+    }
   }, [])
 
   return (
