@@ -235,6 +235,50 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
     },
   )
 
+  // PATCH /preheat-sessions/:id/duration — update timer duration (mechanic only)
+  const updateDurationSchema = z.object({
+    durationMinutes: z.number().int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN),
+  })
+
+  app.patch(
+    '/:id/duration',
+    { preHandler: [authenticate, requireRole('mechanic')] },
+    async (req, reply) => {
+      const { id } = req.params as { id: string }
+      const parsed = updateDurationSchema.safeParse(req.body)
+      if (!parsed.success) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: parsed.error.issues,
+        })
+      }
+
+      const result = await db.query(
+        `UPDATE preheat_sessions
+         SET duration_minutes = $1, updated_at = NOW()
+         WHERE id = $2 AND completed_at IS NULL
+         RETURNING *`,
+        [parsed.data.durationMinutes, id],
+      )
+
+      if (result.rows.length === 0) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Session not found or already completed',
+        })
+      }
+
+      broadcast(app, 'timer.updated', {
+        sessionId: id,
+        durationMinutes: parsed.data.durationMinutes,
+      })
+
+      return { success: true, durationMinutes: parsed.data.durationMinutes }
+    },
+  )
+
   // GET /preheat-sessions/:id — session detail with readings (mechanic only)
   app.get<{ Params: { id: string } }>('/:id', { preHandler: [mechanic] }, async (req, reply) => {
     const session = await db.query<{
