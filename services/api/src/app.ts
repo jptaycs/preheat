@@ -68,8 +68,10 @@ export async function buildApp() {
   // ── Background jobs ──────────────────────────────────────────────────────────
   const { startAutoCancelJob } = await import('./jobs/autoCancel.js')
   const { startConfirmReminderJob } = await import('./jobs/confirmReminder.js')
+  const { startTimerExpiryJob } = await import('./jobs/timerExpiry.js')
   startAutoCancelJob(app)
   startConfirmReminderJob(app)
+  startTimerExpiryJob(app)
 
   return app
 }
