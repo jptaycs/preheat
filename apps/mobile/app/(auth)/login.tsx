@@ -14,6 +14,7 @@ import { useState } from 'react'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
 import { colors, radius, font } from '../../src/theme'
+import { Flame, Plane, Fingerprint, Wrench, Zap } from 'lucide-react-native'
 
 export default function LoginScreen() {
   const { login, devLogin } = useAuth()
@@ -76,7 +77,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <View style={styles.logoWrap}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>✈️</Text>
+            <Flame size={28} color="#fff" />
           </View>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Sign in to your pilot account</Text>
@@ -85,7 +86,10 @@ export default function LoginScreen() {
         {/* Role pill */}
         <View style={styles.pillRow}>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>✈ Pilot</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Plane size={12} color={colors.blue} />
+              <Text style={styles.pillText}>Pilot</Text>
+            </View>
           </View>
         </View>
 
@@ -174,14 +178,25 @@ export default function LoginScreen() {
             void handleBiometric()
           }}
         >
-          <Text style={styles.biometricIcon}>👆</Text>
+          <Fingerprint size={38} color={colors.t3} />
           <Text style={styles.biometricLabel}>Use biometric login</Text>
         </TouchableOpacity>
 
         {/* DEV SHORTCUTS — only in development builds */}
         {__DEV__ && (
           <View style={styles.devPanel}>
-            <Text style={styles.devTitle}>⚡ DEV SHORTCUTS</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                marginBottom: 12,
+              }}
+            >
+              <Zap size={12} color={colors.t3} />
+              <Text style={[styles.devTitle, { marginBottom: 0 }]}>DEV SHORTCUTS</Text>
+            </View>
             <View style={styles.devRow}>
               <TouchableOpacity
                 style={[styles.devBtn, styles.devBtnPilot]}
@@ -192,7 +207,10 @@ export default function LoginScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.devBtnText}>✈ Pilot</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Plane size={14} color={colors.text} />
+                  <Text style={styles.devBtnText}>Pilot</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.devBtn, styles.devBtnMechanic]}
@@ -203,7 +221,10 @@ export default function LoginScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.devBtnText}>🔧 Mechanic</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Wrench size={14} color={colors.text} />
+                  <Text style={styles.devBtnText}>Mechanic</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>

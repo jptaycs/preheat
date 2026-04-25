@@ -13,6 +13,7 @@ import { useAuth } from '../../src/context/AuthContext'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
+import { Flame, Plane } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
 type FilterStatus = 'all' | 'waiting' | 'confirmed' | 'active' | 'completed'
@@ -189,18 +190,27 @@ export default function QueueScreen() {
               <Text style={[styles.statusPillText, { color: sc.fg }]}>{sc.label}</Text>
             </View>
           </View>
-          <Text style={[styles.queueMeta, isMine && { color: colors.blue }]}>
-            {isMine ? '✈ My Aircraft' : `${item.aircraftType} · ${item.pilotFirstName}`}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {isMine && <Plane size={12} color={colors.blue} />}
+            <Text style={[styles.queueMeta, isMine && { color: colors.blue }]}>
+              {isMine ? 'My Aircraft' : `${item.aircraftType} · ${item.pilotFirstName}`}
+            </Text>
+          </View>
 
           {/* Times row */}
           <View style={styles.timesRow}>
             <View>
-              <Text style={styles.timeLabel}>🔥 Preheat</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Flame size={10} color={colors.t3} />
+                <Text style={styles.timeLabel}>Preheat</Text>
+              </View>
               <Text style={styles.timeValue}>{fmtTime(item.engineStartTime)}</Text>
             </View>
             <View>
-              <Text style={styles.timeLabel}>✈ Flight</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Plane size={10} color={colors.t3} />
+                <Text style={styles.timeLabel}>Flight</Text>
+              </View>
               <Text style={styles.timeValue}>{fmtTime(item.engineStartTime)}</Text>
             </View>
           </View>

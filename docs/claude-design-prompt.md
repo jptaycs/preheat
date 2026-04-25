@@ -6,7 +6,9 @@ Copy and paste the prompt below into Claude Design to generate the UI redesign.
 
 ## Prompt
 
-Design a complete mobile app UI for **AeroFluxPro**, an aviation preheat scheduling app used by pilots at small airports and FBOs. The app lets pilots reserve shared aircraft engine preheaters, confirm attendance, and track live heating sessions. Mechanics use it to manage heating jobs. Dispatchers/admins oversee everything from a web dashboard (not in scope here — mobile only).
+Design a complete UI for **AeroFluxPro**, an aviation preheat scheduling app used by pilots at small airports and FBOs. The app lets pilots reserve shared aircraft engine preheaters, confirm attendance, and track live heating sessions. Mechanics use it to manage heating jobs. Dispatchers/admins oversee everything from a separate web dashboard (not in scope here).
+
+The pilot + mechanic app is **universal**: it runs as a native mobile app (Android/iOS) and as a web app in the browser from the same codebase (Expo Router + React Native Web). Design for mobile-first, but the layout must also adapt for web (tablet/desktop browser). Dispatchers/admins use a separate Vite web app — out of scope.
 
 ### Brand & Visual Direction
 
@@ -122,12 +124,19 @@ Design a complete mobile app UI for **AeroFluxPro**, an aviation preheat schedul
   - Each with label + description subtitle
 - **Sign Out button** at bottom (danger style)
 
-### Tab Bar
+### Navigation
+
+**Mobile (bottom tab bar):**
 
 - 4 tabs: Home, Queue, Alerts, Profile
 - Use line icons (not filled) for inactive, filled for active
 - Active tab has a small indicator dot below the icon
 - Badge count on Alerts tab when unread notifications exist
+
+**Web (sidebar or top nav):**
+
+- Same 4 items, presented as a left sidebar on desktop or a top navigation bar on tablet/narrow browser
+- Keep the same icon + label style; no bottom bar on web
 
 ### Interaction Notes
 
@@ -148,4 +157,11 @@ Design a complete mobile app UI for **AeroFluxPro**, an aviation preheat schedul
 
 ### What I Need
 
-Generate all 9 screens as a cohesive mobile app design. This is for client approval before we proceed with frontend implementation, so make it polished and production-ready looking. Show both Pilot and Mechanic views where they differ (especially the Track screen). Use realistic sample data (tail numbers like N12345, N67890; temperatures like -15C → 5C; times like 06:30 AM, 07:15 AM).
+Generate all 9 screens as a cohesive universal app design. This is for client approval before we proceed with frontend implementation, so make it polished and production-ready looking. Show both Pilot and Mechanic views where they differ (especially the Track screen). Use realistic sample data (tail numbers like N12345, N67890; temperatures like -15C → 5C; times like 06:30 AM, 07:15 AM).
+
+For each screen, show:
+
+1. **Mobile layout** (375px — primary view)
+2. **Web/desktop layout** (1280px — adapted layout with sidebar nav, wider content area)
+
+The design system (colors, typography, components) must be consistent across both breakpoints.

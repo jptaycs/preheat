@@ -9,17 +9,34 @@ import {
   SafeAreaView,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import {
+  Sun,
+  CloudSun,
+  Moon,
+  AlertTriangle,
+  ChevronRight,
+  Flame,
+  Plane,
+  MapPin,
+  BarChart3,
+  PlusCircle,
+  ListOrdered,
+  Activity,
+  CheckCircle,
+  XCircle,
+  Calendar,
+} from 'lucide-react-native'
 import { useAuth } from '../../src/context/AuthContext'
 import { preheatRequestsApi, queueApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { colors, font, radius } from '../../src/theme'
 
-function getGreeting(): { text: string; emoji: string } {
+function getGreeting(): { text: string; iconName: string } {
   const h = new Date().getHours()
-  if (h < 12) return { text: 'Good morning', emoji: '☀️' }
-  if (h < 18) return { text: 'Good afternoon', emoji: '🌤️' }
-  return { text: 'Good evening', emoji: '🌙' }
+  if (h < 12) return { text: 'Good morning', iconName: 'sun' }
+  if (h < 18) return { text: 'Good afternoon', iconName: 'cloudsun' }
+  return { text: 'Good evening', iconName: 'moon' }
 }
 
 function todayISO(): string {
@@ -93,9 +110,12 @@ export default function DashboardScreen() {
         {/* Header row with avatar */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>
-              {greeting.text} {greeting.emoji}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text style={styles.greeting}>{greeting.text}</Text>
+              {greeting.iconName === 'sun' && <Sun size={16} color={colors.t2} />}
+              {greeting.iconName === 'cloudsun' && <CloudSun size={16} color={colors.t2} />}
+              {greeting.iconName === 'moon' && <Moon size={16} color={colors.t2} />}
+            </View>
             <Text style={styles.name}>{user?.name ?? 'Pilot'}</Text>
           </View>
           <TouchableOpacity style={styles.avatarWrap} onPress={() => router.push('/(app)/profile')}>
@@ -112,7 +132,7 @@ export default function DashboardScreen() {
             style={styles.alertBanner}
             onPress={() => router.push('/(app)/confirm')}
           >
-            <Text style={styles.alertIcon}>⏰</Text>
+            <AlertTriangle size={18} color={colors.red} />
             <View style={styles.alertText}>
               <Text style={styles.alertTitle}>Confirmation Required</Text>
               <Text style={styles.alertBody}>
@@ -120,7 +140,7 @@ export default function DashboardScreen() {
                 confirmation. Tap to confirm.
               </Text>
             </View>
-            <Text style={styles.alertChevron}>›</Text>
+            <ChevronRight size={20} color={colors.orange} />
           </TouchableOpacity>
         )}
 
@@ -148,21 +168,33 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.flightGrid}>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>🔥 Preheat</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Flame size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Preheat</Text>
+                </View>
                 <Text style={styles.flightGridValue}>{fmtTime(activeRequest.assignedTime)}</Text>
               </View>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>✈️ Engine Start</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Plane size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Engine Start</Text>
+                </View>
                 <Text style={styles.flightGridValue}>{fmtTime(activeRequest.engineStartTime)}</Text>
               </View>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>📍 Queue Pos.</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <MapPin size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Queue Pos.</Text>
+                </View>
                 <Text style={[styles.flightGridValue, { color: colors.blue }]}>
                   #{activeRequest.queuePosition}
                 </Text>
               </View>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>📊 Status</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <BarChart3 size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Status</Text>
+                </View>
                 <Text style={[styles.flightGridValue, { color: colors.green }]}>Active</Text>
               </View>
             </View>
@@ -182,17 +214,26 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.flightGrid}>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>🔥 Preheat</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Flame size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Preheat</Text>
+                </View>
                 <Text style={styles.flightGridValue}>{fmtTime(confirmNeeded[0].assignedTime)}</Text>
               </View>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>✈️ Engine Start</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Plane size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Engine Start</Text>
+                </View>
                 <Text style={styles.flightGridValue}>
                   {fmtTime(confirmNeeded[0].engineStartTime)}
                 </Text>
               </View>
               <View style={styles.flightGridItem}>
-                <Text style={styles.flightGridLabel}>📍 Queue Pos.</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <MapPin size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Queue Pos.</Text>
+                </View>
                 <Text style={[styles.flightGridValue, { color: colors.blue }]}>
                   #{confirmNeeded[0].queuePosition}
                 </Text>
@@ -213,17 +254,17 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
           <View style={styles.quickRow}>
             <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/request')}>
-              <Text style={styles.quickIcon}>🔥</Text>
+              <PlusCircle size={28} color={colors.blue} />
               <Text style={styles.quickLabel}>Request</Text>
               <Text style={styles.quickSub}>Preheat</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/queue')}>
-              <Text style={styles.quickIcon}>📋</Text>
+              <ListOrdered size={28} color={colors.orange} />
               <Text style={styles.quickLabel}>View</Text>
               <Text style={styles.quickSub}>Queue</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/track')}>
-              <Text style={styles.quickIcon}>📊</Text>
+              <Activity size={28} color={colors.green} />
               <Text style={styles.quickLabel}>Track</Text>
               <Text style={styles.quickSub}>Status</Text>
             </TouchableOpacity>
@@ -264,7 +305,7 @@ export default function DashboardScreen() {
               return (
                 <View key={req.id} style={styles.activityItem}>
                   <View style={[styles.activityIconBox, { backgroundColor: iconStyle.bg }]}>
-                    <Text style={styles.activityIconText}>{iconStyle.icon}</Text>
+                    <iconStyle.Icon size={17} color={iconStyle.color} />
                   </View>
                   <View style={styles.activityBody}>
                     <Text style={styles.activityTitle}>
@@ -309,16 +350,20 @@ export default function DashboardScreen() {
   )
 }
 
-function getActivityIcon(status: string): { icon: string; bg: string } {
+function getActivityIcon(status: string): {
+  Icon: React.ComponentType<{ size: number; color: string }>
+  color: string
+  bg: string
+} {
   switch (status) {
     case 'completed':
-      return { icon: '✅', bg: colors.greenD }
+      return { Icon: CheckCircle, color: colors.green, bg: colors.greenD }
     case 'active':
-      return { icon: '🔥', bg: colors.orangeD }
+      return { Icon: Flame, color: colors.orange, bg: colors.orangeD }
     case 'cancelled':
-      return { icon: '❌', bg: colors.redD }
+      return { Icon: XCircle, color: colors.red, bg: colors.redD }
     default:
-      return { icon: '📅', bg: colors.blueD }
+      return { Icon: Calendar, color: colors.blue, bg: colors.blueD }
   }
 }
 

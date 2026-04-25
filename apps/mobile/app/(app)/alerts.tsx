@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
+import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-react-native'
+import type { LucideIcon } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
 type AlertType =
@@ -21,12 +23,12 @@ interface AlertItem {
   urgent?: boolean
 }
 
-const ALERT_STYLE: Record<AlertType, { icon: string; color: string; bg: string }> = {
-  confirm_reminder: { icon: '⏰', color: colors.red, bg: colors.redD },
-  slot_cancelled: { icon: '❌', color: colors.red, bg: colors.redD },
-  session_started: { icon: '🔥', color: colors.orange, bg: colors.orangeD },
-  session_completed: { icon: '✅', color: colors.green, bg: colors.greenD },
-  info: { icon: '📋', color: colors.blue, bg: colors.blueD },
+const ALERT_STYLE: Record<AlertType, { Icon: LucideIcon; color: string; bg: string }> = {
+  confirm_reminder: { Icon: BellRing, color: colors.red, bg: colors.redD },
+  slot_cancelled: { Icon: XCircle, color: colors.red, bg: colors.redD },
+  session_started: { Icon: Flame, color: colors.orange, bg: colors.orangeD },
+  session_completed: { Icon: CheckCircle, color: colors.green, bg: colors.greenD },
+  info: { Icon: Info, color: colors.blue, bg: colors.blueD },
 }
 
 function fmtRelative(date: Date): string {
@@ -135,7 +137,7 @@ export default function AlertsScreen() {
     return (
       <View style={styles.nItem}>
         <View style={[styles.nIconBox, { backgroundColor: style.bg }]}>
-          <Text style={styles.nIcon}>{style.icon}</Text>
+          <style.Icon size={17} color={style.color} />
         </View>
         <View style={styles.nBody}>
           <Text style={styles.nTitle}>{item.title}</Text>
@@ -161,7 +163,7 @@ export default function AlertsScreen() {
 
       {alerts.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🔔</Text>
+          <Bell size={48} color={colors.t2} />
           <Text style={styles.emptyTitle}>No alerts yet</Text>
           <Text style={styles.emptyBody}>
             System notifications and preheat updates will appear here.
@@ -178,10 +180,15 @@ export default function AlertsScreen() {
                 style={styles.urgentCard}
                 onPress={() => router.push('/(app)/confirm')}
               >
-                <Text style={styles.urgentLabel}>🚨 URGENT — TAP TO RESPOND</Text>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}
+                >
+                  <Zap size={12} color={colors.red} />
+                  <Text style={styles.urgentLabel}>URGENT — TAP TO RESPOND</Text>
+                </View>
                 <View style={styles.nItem}>
                   <View style={[styles.nIconBox, { backgroundColor: s.bg }]}>
-                    <Text style={styles.nIcon}>{s.icon}</Text>
+                    <s.Icon size={17} color={s.color} />
                   </View>
                   <View style={styles.nBody}>
                     <Text style={styles.nTitle}>{alertItem.title}</Text>
@@ -250,7 +257,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     color: colors.red,
-    marginBottom: 8,
   },
 
   // Notification item

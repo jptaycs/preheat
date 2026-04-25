@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { useState, useEffect, useCallback } from 'react'
 import { aircraftApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem } from '../../src/lib/api'
+import { ChevronDown, X, Check, CheckCircle } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
 // ── Dropdown helpers ────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProp
         <Text style={value ? styles.dropValue : styles.dropPlaceholder}>
           {value || placeholder}
         </Text>
-        <Text style={styles.dropArrow}>▾</Text>
+        <ChevronDown size={14} color={colors.t2} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -82,7 +83,7 @@ function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProp
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
               <TouchableOpacity onPress={() => setOpen(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <X size={18} color={colors.t2} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -102,7 +103,7 @@ function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProp
                   >
                     {item}
                   </Text>
-                  {item === value && <Text style={styles.modalCheck}>✓</Text>}
+                  {item === value && <Check size={16} color={colors.blue} />}
                 </TouchableOpacity>
               )}
             />
@@ -198,7 +199,7 @@ export default function RequestScreen() {
   if (success) {
     return (
       <View style={styles.successRoot}>
-        <Text style={styles.successIcon}>✅</Text>
+        <CheckCircle size={56} color={colors.green} />
         <Text style={styles.successTitle}>Preheat Requested!</Text>
         <Text style={styles.successSub}>You're #{success.queuePosition} in the queue</Text>
         <Text style={styles.successTime}>
@@ -265,7 +266,7 @@ export default function RequestScreen() {
                   <Text style={styles.aircraftTail}>{a.tailNumber}</Text>
                   <Text style={styles.aircraftType}>{a.type}</Text>
                 </View>
-                {selectedAircraftId === a.id && <Text style={styles.selectedCheck}>✓</Text>}
+                {selectedAircraftId === a.id && <Check size={20} color={colors.blue} />}
               </TouchableOpacity>
             ))
           )}

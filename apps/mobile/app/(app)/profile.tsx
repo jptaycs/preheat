@@ -15,12 +15,14 @@ import { useFocusEffect } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { aircraftApi, preferencesApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem, NotificationPrefs } from '../../src/lib/api'
+import { Plane, Wrench, Settings, ChevronRight } from 'lucide-react-native'
+import type { LucideIcon } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
-const ROLE_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  pilot: { bg: colors.blueD, fg: colors.blue, label: '✈ Pilot Role' },
-  mechanic: { bg: colors.orangeD, fg: colors.orange, label: '🔧 Mechanic Role' },
-  admin: { bg: colors.greenD, fg: colors.green, label: '⚙ Admin Role' },
+const ROLE_COLORS: Record<string, { bg: string; fg: string; label: string; Icon: LucideIcon }> = {
+  pilot: { bg: colors.blueD, fg: colors.blue, label: 'Pilot Role', Icon: Plane },
+  mechanic: { bg: colors.orangeD, fg: colors.orange, label: 'Mechanic Role', Icon: Wrench },
+  admin: { bg: colors.greenD, fg: colors.green, label: 'Admin Role', Icon: Settings },
 }
 
 function getInitials(name: string): string {
@@ -146,6 +148,7 @@ export default function ProfileScreen() {
     bg: colors.s3,
     fg: colors.t2,
     label: (user?.role ?? 'unknown').toUpperCase(),
+    Icon: Plane,
   }
 
   return (
@@ -161,7 +164,10 @@ export default function ProfileScreen() {
             <Text style={styles.profileLicense}>License #{user.licenseNumber}</Text>
           )}
           <View style={[styles.rolePill, { backgroundColor: roleMeta.bg }]}>
-            <Text style={[styles.rolePillText, { color: roleMeta.fg }]}>{roleMeta.label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <roleMeta.Icon size={12} color={roleMeta.fg} />
+              <Text style={[styles.rolePillText, { color: roleMeta.fg }]}>{roleMeta.label}</Text>
+            </View>
           </View>
 
           {/* Stats row */}
@@ -186,14 +192,14 @@ export default function ProfileScreen() {
               <Text style={styles.settingsLabel}>Full Name</Text>
               <Text style={styles.settingsValue}>{user?.name ?? '—'}</Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={16} color={colors.t3} />
           </View>
           <View style={styles.settingsRow}>
             <View>
               <Text style={styles.settingsLabel}>Email</Text>
               <Text style={styles.settingsValue}>{user?.email ?? '—'}</Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={16} color={colors.t3} />
           </View>
           <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
             <View>
@@ -202,7 +208,7 @@ export default function ProfileScreen() {
                 {aircraft.map((a) => a.tailNumber).join(', ') || 'None added'}
               </Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={16} color={colors.t3} />
           </View>
         </View>
 
@@ -327,7 +333,7 @@ export default function ProfileScreen() {
           aircraft.map((item) => (
             <View key={item.id} style={styles.aircraftCard}>
               <View style={styles.aircraftIconCircle}>
-                <Text style={styles.aircraftIconText}>✈️</Text>
+                <Plane size={18} color={colors.t2} />
               </View>
               <View style={styles.aircraftInfo}>
                 <Text style={styles.aircraftTail}>{item.tailNumber}</Text>

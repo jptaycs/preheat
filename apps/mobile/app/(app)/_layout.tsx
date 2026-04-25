@@ -1,11 +1,13 @@
 import { Tabs } from 'expo-router'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { colors } from '../../src/theme'
+import { Home, ListOrdered, Bell, User } from 'lucide-react-native'
+import type { LucideIcon } from 'lucide-react-native'
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+function TabIcon({ Icon, focused }: { Icon: LucideIcon; focused: boolean }) {
   return (
     <View style={styles.iconWrap}>
-      <Text style={[styles.icon, !focused && styles.iconInactive]}>{emoji}</Text>
+      <Icon size={22} color={focused ? colors.blue : colors.t2} strokeWidth={focused ? 2.2 : 1.5} />
       {focused && <View style={styles.dot} />}
     </View>
   )
@@ -35,28 +37,28 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="queue"
         options={{
           title: 'Queue',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={ListOrdered} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="alerts"
         options={{
           title: 'Alerts',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Bell} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={User} focused={focused} />,
         }}
       />
       <Tabs.Screen name="confirm" options={{ title: 'Confirm', ...hiddenTab }} />

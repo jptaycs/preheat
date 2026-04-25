@@ -13,6 +13,7 @@ import { useRouter, Link } from 'expo-router'
 import { useState } from 'react'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
 import { colors, radius, font } from '../../src/theme'
+import { Flame, ArrowLeft } from 'lucide-react-native'
 
 interface Fields {
   name: string
@@ -85,14 +86,14 @@ export default function RegisterScreen() {
         {/* Header */}
         <Link href="/(auth)/login" asChild>
           <TouchableOpacity style={styles.backRow}>
-            <Text style={styles.backArrow}>←</Text>
+            <ArrowLeft size={20} color={colors.t2} />
             <Text style={styles.backLabel}>Sign In</Text>
           </TouchableOpacity>
         </Link>
 
         <View style={styles.headerWrap}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>✈️</Text>
+            <Flame size={24} color="#fff" />
           </View>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join the Preheat pilot network</Text>

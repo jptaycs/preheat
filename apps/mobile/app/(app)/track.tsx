@@ -17,6 +17,7 @@ import { useAuth } from '../../src/context/AuthContext'
 import { preheatRequestsApi, sessionsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, SessionDetail } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
+import { ArrowLeft, RefreshCw, CheckCircle, Plane, Wrench, Clock, Check } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -340,11 +341,14 @@ function MechanicTrack({
       {/* Header */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backBtn}>← Queue</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <ArrowLeft size={18} color={colors.t2} />
+            <Text style={styles.backBtn}>Queue</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Preheat Tracking</Text>
         <TouchableOpacity onPress={() => void fetchSession()}>
-          <Text style={styles.refreshBtn}>↻</Text>
+          <RefreshCw size={18} color={colors.blue} />
         </TouchableOpacity>
       </View>
       <Text style={styles.headerSub}>{tailNumber} · Live Status</Text>
@@ -371,7 +375,7 @@ function MechanicTrack({
       ) : session?.completedAt ? (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.completeCard}>
-            <Text style={styles.completeIcon}>🟢</Text>
+            <CheckCircle size={40} color={colors.green} />
             <Text style={styles.completeTitle}>Preheat Complete!</Text>
             <Text style={styles.completeBody}>{tailNumber} is ready for the pilot.</Text>
           </View>
@@ -421,7 +425,10 @@ function MechanicTrack({
               {completing ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.completeBtnText}>✓ Complete Session</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Check size={18} color="#fff" />
+                  <Text style={styles.completeBtnText}>Complete Session</Text>
+                </View>
               )}
             </TouchableOpacity>
 
@@ -430,7 +437,7 @@ function MechanicTrack({
         </KeyboardAvoidingView>
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🔧</Text>
+          <Wrench size={56} color={colors.orange} />
           <Text style={styles.emptyTitle}>Ready to Preheat</Text>
           <Text style={styles.emptyBody}>
             {tailNumber} is confirmed. Tap Start when you're at the aircraft.
@@ -517,11 +524,11 @@ function PilotTrack() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backBtn}>←</Text>
+          <ArrowLeft size={18} color={colors.t2} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Preheat Tracking</Text>
         <TouchableOpacity onPress={() => void fetchSession()}>
-          <Text style={styles.refreshBtn}>↻</Text>
+          <RefreshCw size={18} color={colors.blue} />
         </TouchableOpacity>
       </View>
       {activeRequest && (
@@ -542,7 +549,7 @@ function PilotTrack() {
         </View>
       ) : !activeRequest ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>✈️</Text>
+          <Plane size={56} color={colors.blue} />
           <Text style={styles.emptyTitle}>No active preheat</Text>
           <Text style={styles.emptyBody}>Request a preheat to see live session tracking here.</Text>
           <TouchableOpacity style={styles.startBtn} onPress={() => router.push('/(app)/request')}>
@@ -552,7 +559,7 @@ function PilotTrack() {
       ) : sessionComplete || session?.completedAt ? (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.completeCard}>
-            <Text style={styles.completeIcon}>🟢</Text>
+            <CheckCircle size={40} color={colors.green} />
             <Text style={styles.completeTitle}>Preheat Complete!</Text>
             <Text style={styles.completeBody}>
               Your aircraft {activeRequest.tailNumber ?? ''} is ready.
@@ -590,7 +597,7 @@ function PilotTrack() {
 
           {!session && (
             <View style={styles.waitingCard}>
-              <Text style={styles.waitingIcon}>⏳</Text>
+              <Clock size={32} color={colors.t2} />
               <Text style={styles.waitingTitle}>Waiting for mechanic</Text>
               <Text style={styles.waitingText}>
                 Your preheat session hasn't started yet. You'll see live updates here once the

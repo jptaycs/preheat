@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest } from '../../src/lib/api'
+import { AlertTriangle, Flame, Plane, CheckCircle, XCircle, Check } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 
 function todayISO(): string {
@@ -160,7 +161,7 @@ export default function ConfirmScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>✅</Text>
+          <CheckCircle size={48} color={colors.green} />
           <Text style={styles.emptyTitle}>No confirmations needed</Text>
           <Text style={styles.emptyBody}>
             You'll be notified when your confirmation window opens.
@@ -180,7 +181,7 @@ export default function ConfirmScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.confirmedWrap}>
           <View style={styles.confirmedCircle}>
-            <Text style={styles.confirmedIcon}>✓</Text>
+            <Check size={36} color={colors.green} />
           </View>
           <Text style={styles.confirmedTitle}>Confirmed!</Text>
           <Text style={styles.confirmedBody}>
@@ -197,7 +198,7 @@ export default function ConfirmScreen() {
         {/* Dramatic red header */}
         <View style={styles.redHeader}>
           <View style={styles.warningCircle}>
-            <Text style={styles.warningIcon}>⚠️</Text>
+            <AlertTriangle size={36} color={colors.red} />
           </View>
           <Text style={styles.actionLabel}>ACTION REQUIRED</Text>
           <Text style={styles.headerTitle}>Confirm Your{'\n'}Flight Attendance</Text>
@@ -219,13 +220,19 @@ export default function ConfirmScreen() {
           </View>
           <View style={styles.summaryGrid}>
             <View>
-              <Text style={styles.gridLabel}>🔥 Preheat</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Flame size={10} color={colors.t3} />
+                <Text style={styles.gridLabel}>Preheat</Text>
+              </View>
               <Text style={[styles.gridValue, { color: colors.orange }]}>
                 {fmtTime(req.assignedTime)}
               </Text>
             </View>
             <View>
-              <Text style={styles.gridLabel}>✈️ Engine Start</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Plane size={10} color={colors.t3} />
+                <Text style={styles.gridLabel}>Engine Start</Text>
+              </View>
               <Text style={styles.gridValue}>{fmtTime(req.engineStartTime)}</Text>
             </View>
           </View>
@@ -233,7 +240,7 @@ export default function ConfirmScreen() {
 
         {/* Warning alert */}
         <View style={styles.warningAlert}>
-          <Text style={styles.warningAlertIcon}>🚨</Text>
+          <AlertTriangle size={18} color={colors.red} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warningAlertTitle}>Do not miss this window</Text>
             <Text style={styles.warningAlertMsg}>
@@ -252,14 +259,20 @@ export default function ConfirmScreen() {
           {isConfirming ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.confirmBtnText}>✅ I'm Arriving — Confirm</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <CheckCircle size={18} color="#fff" />
+              <Text style={styles.confirmBtnText}>I'm Arriving — Confirm</Text>
+            </View>
           )}
         </TouchableOpacity>
 
         {/* Cancel section */}
         <Text style={styles.cancelHint}>I won't be able to make it</Text>
         <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
-          <Text style={styles.cancelBtnText}>✗ Cancel My Preheat Request</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <XCircle size={16} color={colors.red} />
+            <Text style={styles.cancelBtnText}>Cancel My Preheat Request</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Show remaining if more than 1 */}
