@@ -4,9 +4,11 @@ import { db } from '../db/client.js'
 import { authenticate, requireRole } from '../middleware/authenticate.js'
 import { broadcast } from '../lib/broadcast.js'
 import { sendPushNotification } from '../lib/push.js'
+import { DEFAULT_DURATION_MIN, MIN_DURATION_MIN, MAX_DURATION_MIN } from '../config/queue.js'
 
 const startSessionBody = z.object({
   requestId: z.string().uuid(),
+  durationMinutes: z.number().int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN).optional(),
 })
 
 const addReadingBody = z.object({
@@ -73,10 +75,10 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
 
     // Create session + mark request active
     const session = await db.query<{ id: string; started_at: string }>(
-      `INSERT INTO preheat_sessions (request_id, mechanic_id)
-       VALUES ($1, $2)
+      `INSERT INTO preheat_sessions (request_id, mechanic_id, duration_minutes)
+       VALUES ($1, $2, $3)
        RETURNING id, started_at`,
-      [requestId, req.userId],
+      [requestId, req.userId, parsed.data.durationMinutes ?? DEFAULT_DURATION_MIN],
     )
 
     await db.query(
@@ -240,10 +242,11 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       request_id: string
       mechanic_id: string
       current_temp_celsius: number | null
+      duration_minutes: number
       started_at: string
       completed_at: string | null
     }>(
-      `SELECT id, request_id, mechanic_id, current_temp_celsius, started_at, completed_at
+      `SELECT id, request_id, mechanic_id, current_temp_celsius, duration_minutes, started_at, completed_at
        FROM preheat_sessions WHERE id = $1`,
       [req.params.id],
     )
@@ -268,6 +271,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       requestId: s.request_id,
       mechanicId: s.mechanic_id,
       currentTempCelsius: s.current_temp_celsius,
+      durationMinutes: Number(s.duration_minutes),
       startedAt: s.started_at,
       completedAt: s.completed_at,
       readings: readings.rows.map((r) => ({
@@ -284,10 +288,11 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       id: string
       request_id: string
       current_temp_celsius: number | null
+      duration_minutes: number
       started_at: string
       completed_at: string | null
     }>(
-      `SELECT id, request_id, current_temp_celsius, started_at, completed_at
+      `SELECT id, request_id, current_temp_celsius, duration_minutes, started_at, completed_at
        FROM preheat_sessions WHERE request_id = $1`,
       [req.params.requestId],
     )
@@ -311,6 +316,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       id: s.id,
       requestId: s.request_id,
       currentTempCelsius: s.current_temp_celsius,
+      durationMinutes: Number(s.duration_minutes),
       startedAt: s.started_at,
       completedAt: s.completed_at,
       readings: readings.rows.map((r) => ({

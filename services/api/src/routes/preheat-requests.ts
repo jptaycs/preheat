@@ -10,6 +10,8 @@ import {
   CONFIRM_OPENS_MIN,
   CONFIRM_DEADLINE_MIN,
   BOOKING_OPENS_HOUR,
+  MIN_DURATION_MIN,
+  MAX_DURATION_MIN,
 } from '../config/queue.js'
 
 function addMinutes(date: Date, minutes: number): Date {
@@ -26,6 +28,7 @@ const createRequestBody = z.object({
   aircraftId: z.string().uuid(),
   engineStartTime: z.string().datetime({ message: 'engineStartTime must be an ISO 8601 datetime' }),
   notes: z.string().max(500).optional(),
+  preferredDurationMinutes: z.number().int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN).optional(),
 })
 
 // ── Routes ───────────────────────────────────────────────────────────────────
@@ -50,7 +53,7 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
         })
       }
 
-      const { aircraftId, notes } = parsed.data
+      const { aircraftId, notes, preferredDurationMinutes } = parsed.data
       const engineStartTime = new Date(parsed.data.engineStartTime)
       const now = new Date()
 
@@ -158,8 +161,9 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
       }>(
         `INSERT INTO preheat_requests
          (pilot_id, aircraft_id, queue_position, request_date,
-          engine_start_time, assigned_time, confirm_opens_at, confirm_deadline, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          engine_start_time, assigned_time, confirm_opens_at, confirm_deadline, notes,
+          preferred_duration_minutes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING
          id, queue_position, request_date,
          engine_start_time, assigned_time, confirm_opens_at, confirm_deadline,
@@ -174,6 +178,7 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
           confirmOpensAt.toISOString(),
           confirmDeadline.toISOString(),
           notes ?? null,
+          preferredDurationMinutes ?? null,
         ],
       )
 
@@ -388,24 +393,26 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
       })
     }
 
-    const windowOpens = new Date(request.confirm_opens_at)
-    const windowCloses = new Date(request.confirm_deadline)
+    if (process.env.NODE_ENV !== 'development') {
+      const windowOpens = new Date(request.confirm_opens_at)
+      const windowCloses = new Date(request.confirm_deadline)
 
-    if (now < windowOpens) {
-      const minsUntilOpen = Math.ceil((windowOpens.getTime() - now.getTime()) / 60_000)
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: `Confirmation window not open yet. Opens in ${minsUntilOpen} minutes (at ${windowOpens.toISOString()})`,
-      })
-    }
+      if (now < windowOpens) {
+        const minsUntilOpen = Math.ceil((windowOpens.getTime() - now.getTime()) / 60_000)
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: `Confirmation window not open yet. Opens in ${minsUntilOpen} minutes (at ${windowOpens.toISOString()})`,
+        })
+      }
 
-    if (now > windowCloses) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'Confirmation window has closed. Preheat will not be executed for this slot.',
-      })
+      if (now > windowCloses) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Confirmation window has closed. Preheat will not be executed for this slot.',
+        })
+      }
     }
 
     await db.query(
