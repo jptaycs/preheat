@@ -47,7 +47,8 @@ async function refreshAccessToken(): Promise<string | null> {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, auth = true } = options
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {}
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
 
   let sentToken: string | null = null
   if (auth) {
@@ -178,6 +179,7 @@ export interface PreheatRequest {
   confirmedAt?: string | null
   cancelledAt?: string | null
   createdAt: string
+  preferredDurationMinutes?: number | null
 }
 
 export interface QueueEntry {
@@ -218,6 +220,7 @@ export interface SessionDetail {
   startedAt: string
   completedAt: string | null
   readings: SessionReading[]
+  durationMinutes: number
 }
 
 // ── Aircraft endpoints ─────────────────────────────────────────────────────────
@@ -244,7 +247,12 @@ export const preheatRequestsApi = {
   get(id: string) {
     return request<PreheatRequest>(`/preheat-requests/${id}`)
   },
-  create(body: { aircraftId: string; engineStartTime: string; notes?: string }) {
+  create(body: {
+    aircraftId: string
+    engineStartTime: string
+    notes?: string
+    preferredDurationMinutes?: number
+  }) {
     return request<PreheatRequest>('/preheat-requests', { method: 'POST', body })
   },
   confirm(id: string) {
@@ -272,11 +280,17 @@ export const sessionsApi = {
   getByRequest(requestId: string) {
     return request<SessionDetail>(`/preheat-sessions/by-request/${requestId}`)
   },
-  start(requestId: string) {
+  start(requestId: string, durationMinutes?: number) {
     return request<{ id: string; startedAt: string }>('/preheat-sessions', {
       method: 'POST',
-      body: { requestId },
+      body: { requestId, durationMinutes },
     })
+  },
+  updateDuration(sessionId: string, durationMinutes: number) {
+    return request<{ success: boolean; durationMinutes: number }>(
+      `/preheat-sessions/${sessionId}/duration`,
+      { method: 'PATCH', body: { durationMinutes } },
+    )
   },
   addReading(sessionId: string, tempCelsius: number) {
     return request<{ id: string; tempCelsius: number; recordedAt: string }>(
