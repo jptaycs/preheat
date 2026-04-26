@@ -6,18 +6,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
   Animated,
   TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { preheatRequestsApi, sessionsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, SessionDetail } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { ArrowLeft, RefreshCw, CheckCircle, Plane, Wrench, Clock, Check } from 'lucide-react-native'
+import { DurationPicker } from '../../src/components/DurationPicker'
+import { CountdownTimer } from '../../src/components/CountdownTimer'
 import { colors, font, radius } from '../../src/theme'
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -50,7 +52,7 @@ function HeatGauge({ tempC, session }: { tempC: number | null; session?: Session
     return () => loop.stop()
   }, [pulseAnim])
 
-  const displayTemp = tempC !== null ? `${tempC.toFixed(0)}°C` : '--'
+  const displayTemp = tempC !== null ? `${Number(tempC).toFixed(0)}°C` : '--'
 
   return (
     <View style={styles.gaugeCard}>
@@ -73,7 +75,7 @@ function HeatGauge({ tempC, session }: { tempC: number | null; session?: Session
         <View style={styles.tempGridItem}>
           <Text style={styles.tempGridLabel}>Current</Text>
           <Text style={[styles.tempGridValue, { color: colors.orange }]}>
-            {tempC !== null ? `${tempC.toFixed(0)}°C` : '--'}
+            {tempC !== null ? `${Number(tempC).toFixed(0)}°C` : '--'}
           </Text>
         </View>
         <View style={styles.tempGridItem}>
@@ -141,7 +143,7 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
               <Text style={styles.tlTime}>{fmtTimeShort(r.recordedAt)}</Text>
               <View style={[styles.tlCard, isLatest && { borderColor: colors.orange }]}>
                 <View style={styles.tlCardRow}>
-                  <Text style={styles.tlCardTitle}>Temperature: {r.tempCelsius.toFixed(1)}°C</Text>
+                  <Text style={styles.tlCardTitle}>Temperature: {Number(r.tempCelsius).toFixed(1)}°C</Text>
                   {isLatest && (
                     <View style={[styles.tlBadge, { backgroundColor: colors.orangeD }]}>
                       <Text style={[styles.tlBadgeText, { color: colors.orange }]}>Latest</Text>
@@ -246,6 +248,9 @@ function MechanicTrack({
   const [starting, setStarting] = useState(false)
   const [logging, setLogging] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [duration, setDuration] = useState(20)
+  const [editingDuration, setEditingDuration] = useState(false)
+  const [timerExpired, setTimerExpired] = useState(false)
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -275,6 +280,12 @@ function MechanicTrack({
     void fetchSession()
   }, [fetchSession])
 
+  useEffect(() => {
+    if (session?.durationMinutes) {
+      setDuration(session.durationMinutes)
+    }
+  }, [session?.durationMinutes])
+
   useWebSocket({
     'temp.updated': () => {
       void fetchSession()
@@ -288,12 +299,18 @@ function MechanicTrack({
     'queue.updated': () => {
       void fetchSession()
     },
+    'timer.updated': () => {
+      void fetchSession()
+    },
+    'timer.expired': () => {
+      setTimerExpired(true)
+    },
   })
 
   async function handleStart() {
     setStarting(true)
     try {
-      await sessionsApi.start(requestId)
+      await sessionsApi.start(requestId, duration)
       await fetchSession()
     } catch (e) {
       if (isMounted.current) setError(e instanceof ApiError ? e.message : 'Failed to start session')
@@ -387,6 +404,47 @@ function MechanicTrack({
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={styles.content}>
+            <CountdownTimer
+              startedAt={session.startedAt}
+              durationMinutes={duration}
+              editable
+              onEdit={() => setEditingDuration(true)}
+              onExpired={() => setTimerExpired(true)}
+            />
+
+            {timerExpired && (
+              <View style={styles.expiredBanner}>
+                <Text style={styles.expiredText}>Timer is up! Check the aircraft temperature.</Text>
+              </View>
+            )}
+
+            {editingDuration && (
+              <View style={styles.editDurationCard}>
+                <Text style={styles.editDurationTitle}>ADJUST TIMER</Text>
+                <DurationPicker value={duration} onChange={setDuration} />
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  <TouchableOpacity
+                    style={styles.editDurationCancel}
+                    onPress={() => setEditingDuration(false)}
+                  >
+                    <Text style={styles.editDurationCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.editDurationSave}
+                    onPress={async () => {
+                      if (session) {
+                        await sessionsApi.updateDuration(session.id, duration)
+                        setEditingDuration(false)
+                        setTimerExpired(false)
+                      }
+                    }}
+                  >
+                    <Text style={styles.editDurationSaveText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             <HeatGauge tempC={session.currentTempCelsius} session={session} />
 
             {/* Temperature input */}
@@ -442,6 +500,11 @@ function MechanicTrack({
           <Text style={styles.emptyBody}>
             {tailNumber} is confirmed. Tap Start when you're at the aircraft.
           </Text>
+          <DurationPicker
+            label="PREHEAT DURATION"
+            value={duration}
+            onChange={setDuration}
+          />
           <TouchableOpacity
             style={[styles.startBtn, starting && styles.btnDisabled]}
             onPress={() => void handleStart()}
@@ -468,6 +531,7 @@ function PilotTrack() {
   const [activeRequest, setActiveRequest] = useState<PreheatRequest | null>(null)
   const [session, setSession] = useState<SessionDetail | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
+  const [timerExpired, setTimerExpired] = useState(false)
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -517,6 +581,12 @@ function PilotTrack() {
     },
     'queue.updated': () => {
       void fetchSession()
+    },
+    'timer.updated': () => {
+      void fetchSession()
+    },
+    'timer.expired': () => {
+      setTimerExpired(true)
     },
   })
 
@@ -569,6 +639,20 @@ function PilotTrack() {
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
+          {session && (
+            <CountdownTimer
+              startedAt={session.startedAt}
+              durationMinutes={session.durationMinutes}
+              onExpired={() => setTimerExpired(true)}
+            />
+          )}
+
+          {timerExpired && (
+            <View style={styles.expiredBanner}>
+              <Text style={styles.expiredText}>Preheat time is up! Your aircraft should be ready soon.</Text>
+            </View>
+          )}
+
           <HeatGauge tempC={session?.currentTempCelsius ?? null} session={session} />
 
           {/* Info card */}
@@ -894,4 +978,51 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   tlBadgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+
+  // Expired banner
+  expiredBanner: {
+    backgroundColor: colors.redD,
+    borderWidth: 1,
+    borderColor: colors.red,
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  expiredText: { color: colors.red, fontWeight: '700', fontSize: font.base },
+
+  // Edit duration card (mechanic)
+  editDurationCard: {
+    backgroundColor: colors.s1,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.blue,
+    padding: 16,
+    marginBottom: 14,
+  },
+  editDurationTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.t2,
+    letterSpacing: 0.8,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  editDurationCancel: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  editDurationCancelText: { color: colors.t2, fontWeight: '600' },
+  editDurationSave: {
+    flex: 1,
+    backgroundColor: colors.blue,
+    borderRadius: radius.sm,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  editDurationSaveText: { color: '#fff', fontWeight: '700' },
 })

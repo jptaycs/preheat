@@ -17,6 +17,7 @@ import { aircraftApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem } from '../../src/lib/api'
 import { ChevronDown, X, Check, CheckCircle } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
+import { DurationPicker } from '../../src/components/DurationPicker'
 
 // ── Dropdown helpers ────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export default function RequestScreen() {
   const [minute, setMinute] = useState('')
 
   const [notes, setNotes] = useState('')
+  const [preferredDuration, setPreferredDuration] = useState(20)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingAircraft, setIsLoadingAircraft] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -187,6 +189,7 @@ export default function RequestScreen() {
         aircraftId: selectedAircraftId,
         engineStartTime: engineStartISO,
         notes: notes.trim() || undefined,
+        preferredDurationMinutes: preferredDuration,
       })
       setSuccess({ queuePosition: result.queuePosition, assignedTime: result.assignedTime })
     } catch (err) {
@@ -351,6 +354,15 @@ export default function RequestScreen() {
             onChangeText={setNotes}
             multiline
             numberOfLines={3}
+          />
+        </View>
+
+        {/* Preferred duration */}
+        <View style={styles.section}>
+          <DurationPicker
+            label="PREFERRED DURATION"
+            value={preferredDuration}
+            onChange={setPreferredDuration}
           />
         </View>
 
