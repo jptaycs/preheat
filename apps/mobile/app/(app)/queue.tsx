@@ -1,14 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  SafeAreaView,
-} from 'react-native'
-import { useRouter } from 'expo-router'
+import React, { useCallback, useState } from 'react'
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
@@ -39,6 +32,7 @@ function fmtTime(iso: string): string {
 
 function isInConfirmWindow(entry: QueueEntry): boolean {
   if (entry.status !== 'waiting') return false
+  if (__DEV__) return true // skip time window check in dev
   const now = Date.now()
   const opens = new Date(entry.confirmOpensAt).getTime()
   const deadline = new Date(entry.confirmDeadline).getTime()
@@ -58,9 +52,9 @@ export default function QueueScreen() {
   const { user } = useAuth()
   const isMechanic = user?.role === 'mechanic'
   const today = new Date()
-  const dates = [addDays(today, 0), addDays(today, 1), addDays(today, 2)]
+  const dates = ['all', addDays(today, 0), addDays(today, 1), addDays(today, 2)]
 
-  const [selectedDate, setSelectedDate] = useState(dates[0])
+  const [selectedDate, setSelectedDate] = useState('all')
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +64,7 @@ export default function QueueScreen() {
   const fetchQueue = useCallback(async (date: string) => {
     try {
       setError(null)
-      const data = await queueApi.get({ date })
+      const data = await queueApi.get(date === 'all' ? undefined : { date })
       setQueueData(data)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to load queue')
@@ -79,10 +73,12 @@ export default function QueueScreen() {
     }
   }, [])
 
-  useEffect(() => {
-    setLoading(true)
-    void fetchQueue(selectedDate)
-  }, [selectedDate, fetchQueue])
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true)
+      void fetchQueue(selectedDate)
+    }, [selectedDate, fetchQueue]),
+  )
 
   useWebSocket({
     'queue.updated': () => {
@@ -111,11 +107,9 @@ export default function QueueScreen() {
 
   function handleCardPress(item: QueueEntry) {
     if (isMechanic) {
-      if (item.status === 'confirmed' || item.status === 'active') {
-        router.push(
-          `/(app)/track?requestId=${item.id}&tailNumber=${encodeURIComponent(item.tailNumber)}&aircraftType=${encodeURIComponent(item.aircraftType)}&pilotName=${encodeURIComponent(item.pilotFirstName)}`,
-        )
-      }
+      router.push(
+        `/(app)/track?requestId=${item.id}&tailNumber=${encodeURIComponent(item.tailNumber)}&aircraftType=${encodeURIComponent(item.aircraftType)}&pilotName=${encodeURIComponent(item.pilotFirstName)}`,
+      )
       return
     }
     if (item.status === 'active') {
@@ -130,10 +124,7 @@ export default function QueueScreen() {
   function renderItem({ item, index }: { item: QueueEntry; index: number }) {
     const sc = STATUS_COLORS[item.status] ?? { bg: colors.s3, fg: colors.t2, label: item.status }
     const inWindow = isInConfirmWindow(item)
-    const tappable =
-      item.isMine ||
-      item.status === 'active' ||
-      (isMechanic && (item.status === 'confirmed' || item.status === 'active'))
+    const tappable = item.isMine || item.status === 'active' || isMechanic
 
     const isMine = item.isMine
     const isActive = item.status === 'active'
@@ -291,7 +282,7 @@ export default function QueueScreen() {
             onPress={() => setSelectedDate(d)}
           >
             <Text style={[styles.dateChipText, selectedDate === d && styles.dateChipTextActive]}>
-              {d === dates[0] ? 'Today' : fmtDate(d)}
+              {d === 'all' ? 'All' : d === dates[1] ? 'Today' : fmtDate(d)}
             </Text>
           </TouchableOpacity>
         ))}

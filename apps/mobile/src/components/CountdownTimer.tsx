@@ -104,7 +104,7 @@ export function CountdownTimer({
       <View style={[styles.ring, { borderColor: timerColor + '44' }]}>
         <View style={[styles.inner, { borderColor: timerColor + '66' }]}>
           <Clock size={16} color={timerColor} />
-          <Text style={[styles.time, { color: timerColor }]}>
+          <Text style={[styles.time, { color: timerColor }, expired && styles.timeExpired]}>
             {expired ? "TIME'S UP" : display}
           </Text>
           <Text style={styles.label}>
@@ -142,7 +142,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.s2,
     gap: 4,
   },
-  time: { fontSize: 28, fontWeight: '900' },
+  time: { fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  timeExpired: { fontSize: 18 },
   label: { fontSize: 11, color: colors.t2, fontWeight: '600' },
   editBtn: {
     flexDirection: 'row',

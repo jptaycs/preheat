@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest } from '../../src/lib/api'
@@ -30,6 +30,7 @@ function getConfirmPending(requests: PreheatRequest[]): PreheatRequest[] {
   const now = Date.now()
   return requests.filter((r) => {
     if (r.status !== 'waiting') return false
+    if (__DEV__) return true // skip time window check in dev
     const opens = new Date(r.confirmOpensAt).getTime()
     const deadline = new Date(r.confirmDeadline).getTime()
     return now >= opens && now <= deadline

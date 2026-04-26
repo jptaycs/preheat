@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect, useRouter } from 'expo-router'
 import {
   Sun,
   CloudSun,
@@ -83,9 +83,11 @@ export default function DashboardScreen() {
     }
   }, [])
 
-  useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData()
+    }, [fetchData]),
+  )
 
   useWebSocket({
     'queue.updated': () => {
@@ -330,10 +332,10 @@ export default function DashboardScreen() {
           <View style={styles.devPanel}>
             <Text style={styles.devTitle}>Dev Panel</Text>
             <View style={styles.devRow}>
-              <TouchableOpacity style={styles.devBtn} onPress={() => devLogin('pilot')}>
+              <TouchableOpacity style={styles.devBtn} onPress={() => void devLogin('pilot')}>
                 <Text style={styles.devBtnText}>Dev Pilot</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.devBtn} onPress={() => devLogin('mechanic')}>
+              <TouchableOpacity style={styles.devBtn} onPress={() => void devLogin('mechanic')}>
                 <Text style={styles.devBtnText}>Dev Mechanic</Text>
               </TouchableOpacity>
               <TouchableOpacity
