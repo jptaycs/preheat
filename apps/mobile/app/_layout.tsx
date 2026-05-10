@@ -1,5 +1,6 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect } from 'react'
+import { View, ActivityIndicator } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider, useAuth } from '../src/context/AuthContext'
 
@@ -19,6 +20,21 @@ function Guard() {
       router.replace('/(app)')
     }
   }, [isAuthenticated, isLoading, segments])
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#0A0F1E',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    )
+  }
 
   return <Slot />
 }
