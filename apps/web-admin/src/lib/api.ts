@@ -164,6 +164,21 @@ export const queueApi = {
 
 // ── Sessions API ───────────────────────────────────────────────────────────
 
+export interface SessionReading {
+  id: string
+  tempCelsius: number
+  recordedAt: string
+}
+
+export interface SessionDetail {
+  id: string
+  startedAt: string
+  completedAt: string | null
+  currentTempCelsius: number | null
+  durationMinutes: number
+  readings: SessionReading[]
+}
+
 export const sessionsApi = {
   start(requestId: string): Promise<{ id: string; startedAt: string }> {
     return request('/preheat-sessions', {
@@ -172,8 +187,12 @@ export const sessionsApi = {
     })
   },
 
+  getByRequest(requestId: string): Promise<SessionDetail> {
+    return request(`/preheat-sessions/by-request/${requestId}`)
+  },
+
   addReading(sessionId: string, tempCelsius: number): Promise<void> {
-    return request(`/preheat-sessions/${sessionId}/readings`, {
+    return request(`/preheat-sessions/${sessionId}/reading`, {
       method: 'POST',
       body: JSON.stringify({ tempCelsius }),
     })

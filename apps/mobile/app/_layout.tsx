@@ -3,9 +3,11 @@ import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider, useAuth } from '../src/context/AuthContext'
+import { usePushNotifications } from '../src/hooks/usePushNotifications'
 
 function Guard() {
   const { isAuthenticated, isLoading } = useAuth()
+  usePushNotifications()
   const router = useRouter()
   const segments = useSegments()
 

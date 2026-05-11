@@ -133,6 +133,10 @@ export const authApi = {
   logout() {
     return request<{ success: boolean }>('/auth/logout', { method: 'POST' })
   },
+
+  savePushToken(pushToken: string) {
+    return request<{ success: boolean }>('/auth/push-token', { method: 'PUT', body: { pushToken } })
+  },
 }
 
 export { ApiError }

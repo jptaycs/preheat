@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import type { QueueEntry, QueueResponse } from '../lib/api'
+import type { QueueEntry, QueueResponse, SessionDetail } from '../lib/api'
 import { queueApi, sessionsApi, preheatRequestsApi } from '../lib/api'
 import { onWsEvent } from '../lib/ws'
 import { theme } from '../theme'
@@ -51,18 +51,6 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Session detail panel ───────────────────────────────────────────────────
 
-interface Reading {
-  tempCelsius: number
-  recordedAt: string
-}
-
-interface SessionDetail {
-  id: string
-  startedAt: string
-  completedAt?: string
-  readings?: Reading[]
-}
-
 function SessionPanel({ session }: { session: SessionDetail }) {
   return (
     <div
@@ -84,7 +72,7 @@ function SessionPanel({ session }: { session: SessionDetail }) {
         Session started {fmt(session.startedAt)}
         {session.completedAt && ` · Completed ${fmt(session.completedAt)}`}
       </div>
-      {session.readings && session.readings.length > 0 ? (
+      {session.readings.length > 0 ? (
         <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
           {session.readings.map((r, i) => (
             <div
@@ -219,14 +207,16 @@ function RowActions({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => 
 // ── Expanded row ───────────────────────────────────────────────────────────
 
 function ExpandedRow({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => void }) {
-  // Fake session detail shape from what the entry already provides
-  const session: SessionDetail | null = entry.sessionId
-    ? {
-        id: entry.sessionId,
-        startedAt: entry.assignedTime, // approximation until real endpoint
-        readings: [],
-      }
-    : null
+  const [session, setSession] = useState<SessionDetail | null>(null)
+
+  useEffect(() => {
+    if (entry.sessionId) {
+      void sessionsApi
+        .getByRequest(entry.id)
+        .then(setSession)
+        .catch(() => setSession(null))
+    }
+  }, [entry.id, entry.sessionId])
 
   return (
     <td
@@ -264,7 +254,6 @@ function ExpandedRow({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () =>
 
 export default function Queue() {
   const [dateFrom, setDateFrom] = useState(todayISO())
-  const [dateTo, setDateTo] = useState(todayISO())
   const [statusFilter, setStatusFilter] = useState('all')
   const [data, setData] = useState<QueueResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -274,7 +263,6 @@ export default function Queue() {
   const load = useCallback(async () => {
     try {
       setError(null)
-      // Load the "from" date; multi-day would require a different endpoint
       const res = await queueApi.get(dateFrom)
       setData(res)
     } catch (e) {
@@ -350,23 +338,13 @@ export default function Queue() {
             ))}
           </select>
 
-          {/* Date range */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              style={dateInputStyle}
-            />
-            <span style={{ color: theme.colors.t2, fontSize: theme.fontSizes.sm }}>to</span>
-            <input
-              type="date"
-              value={dateTo}
-              min={dateFrom}
-              onChange={(e) => setDateTo(e.target.value)}
-              style={dateInputStyle}
-            />
-          </div>
+          {/* Date picker */}
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={dateInputStyle}
+          />
         </div>
       </div>
 

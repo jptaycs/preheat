@@ -158,6 +158,22 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ success: true })
   })
 
+  // PUT /auth/push-token — save Expo push token for the authenticated user
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  app.put('/push-token', { preHandler: authenticate }, async (req, reply) => {
+    const body = req.body as { pushToken?: string }
+    if (!body.pushToken || typeof body.pushToken !== 'string') {
+      return reply
+        .status(400)
+        .send({ statusCode: 400, error: 'Bad Request', message: 'pushToken is required' })
+    }
+    await db.query('UPDATE users SET push_token = $1, updated_at = NOW() WHERE id = $2', [
+      body.pushToken,
+      req.userId,
+    ])
+    return reply.send({ success: true })
+  })
+
   // GET /auth/me
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   app.get('/me', { preHandler: authenticate }, async (req, reply) => {
