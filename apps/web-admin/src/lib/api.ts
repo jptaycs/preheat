@@ -91,7 +91,7 @@ async function refreshAccessToken(): Promise<string> {
 async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
   const token = getAccessToken()
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
