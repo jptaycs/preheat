@@ -23,6 +23,7 @@ export async function queueRoutes(app: FastifyInstance) {
       tail_number: string
       aircraft_type: string
       is_mine: boolean
+      session_id: string | null
     }>(
       date
         ? `SELECT
@@ -32,10 +33,12 @@ export async function queueRoutes(app: FastifyInstance) {
              r.status,
              split_part(u.name, ' ', 1) AS pilot_first_name,
              a.tail_number, a.type AS aircraft_type,
-             (r.pilot_id = $2) AS is_mine
+             (r.pilot_id = $2) AS is_mine,
+             s.id AS session_id
            FROM preheat_requests r
            JOIN users u ON u.id = r.pilot_id
            JOIN aircraft a ON a.id = r.aircraft_id
+           LEFT JOIN preheat_sessions s ON s.request_id = r.id
            WHERE r.request_date = $1
              AND r.status NOT IN ('cancelled')
            ORDER BY r.queue_position ASC`
@@ -46,10 +49,12 @@ export async function queueRoutes(app: FastifyInstance) {
              r.status,
              split_part(u.name, ' ', 1) AS pilot_first_name,
              a.tail_number, a.type AS aircraft_type,
-             (r.pilot_id = $1) AS is_mine
+             (r.pilot_id = $1) AS is_mine,
+             s.id AS session_id
            FROM preheat_requests r
            JOIN users u ON u.id = r.pilot_id
            JOIN aircraft a ON a.id = r.aircraft_id
+           LEFT JOIN preheat_sessions s ON s.request_id = r.id
            WHERE r.status NOT IN ('cancelled')
            ORDER BY r.request_date ASC, r.queue_position ASC`,
       date ? [date, req.userId] : [req.userId],
@@ -67,6 +72,7 @@ export async function queueRoutes(app: FastifyInstance) {
       tailNumber: r.tail_number,
       aircraftType: r.aircraft_type,
       isMine: r.is_mine,
+      sessionId: r.session_id ?? undefined,
     }))
     const stats = {
       waiting: entries.filter((e) => e.status === 'waiting').length,
