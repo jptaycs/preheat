@@ -32,10 +32,6 @@ function fmtTimeShort(iso: string): string {
   }
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 // ── Shared components ─────────────────────────────────────────────────────────
 
 function HeatGauge({ tempC, session }: { tempC: number | null; session?: SessionDetail | null }) {
@@ -143,7 +139,9 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
               <Text style={styles.tlTime}>{fmtTimeShort(r.recordedAt)}</Text>
               <View style={[styles.tlCard, isLatest && { borderColor: colors.orange }]}>
                 <View style={styles.tlCardRow}>
-                  <Text style={styles.tlCardTitle}>Temperature: {Number(r.tempCelsius).toFixed(1)}°C</Text>
+                  <Text style={styles.tlCardTitle}>
+                    Temperature: {Number(r.tempCelsius).toFixed(1)}°C
+                  </Text>
                   {isLatest && (
                     <View style={[styles.tlBadge, { backgroundColor: colors.orangeD }]}>
                       <Text style={[styles.tlBadgeText, { color: colors.orange }]}>Latest</Text>
@@ -431,11 +429,12 @@ function MechanicTrack({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.editDurationSave}
-                    onPress={async () => {
+                    onPress={() => {
                       if (session) {
-                        await sessionsApi.updateDuration(session.id, duration)
-                        setEditingDuration(false)
-                        setTimerExpired(false)
+                        void sessionsApi.updateDuration(session.id, duration).then(() => {
+                          setEditingDuration(false)
+                          setTimerExpired(false)
+                        })
                       }
                     }}
                   >
@@ -500,11 +499,7 @@ function MechanicTrack({
           <Text style={styles.emptyBody}>
             {tailNumber} is confirmed. Tap Start when you're at the aircraft.
           </Text>
-          <DurationPicker
-            label="PREHEAT DURATION"
-            value={duration}
-            onChange={setDuration}
-          />
+          <DurationPicker label="PREHEAT DURATION" value={duration} onChange={setDuration} />
           <TouchableOpacity
             style={[styles.startBtn, starting && styles.btnDisabled]}
             onPress={() => void handleStart()}
@@ -543,7 +538,7 @@ function PilotTrack() {
   const fetchSession = useCallback(async () => {
     try {
       setError(null)
-      const requests = await preheatRequestsApi.list({ date: todayISO() })
+      const requests = await preheatRequestsApi.list()
       const active = requests.find((r) => r.status === 'active' || r.status === 'confirmed')
       if (!active) {
         if (isMounted.current) {
@@ -649,7 +644,9 @@ function PilotTrack() {
 
           {timerExpired && (
             <View style={styles.expiredBanner}>
-              <Text style={styles.expiredText}>Preheat time is up! Your aircraft should be ready soon.</Text>
+              <Text style={styles.expiredText}>
+                Preheat time is up! Your aircraft should be ready soon.
+              </Text>
             </View>
           )}
 
