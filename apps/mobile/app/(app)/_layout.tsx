@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native'
 import { colors } from '../../src/theme'
 import { Home, ListOrdered, Bell, User } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
+import { useBadge } from '../../src/context/BadgeContext'
 
 function TabIcon({ Icon, focused }: { Icon: LucideIcon; focused: boolean }) {
   return (
@@ -16,6 +17,8 @@ function TabIcon({ Icon, focused }: { Icon: LucideIcon; focused: boolean }) {
 const hiddenTab = { tabBarButton: () => null, tabBarItemStyle: { display: 'none' as const } }
 
 export default function AppLayout() {
+  const { alertBadge, confirmBadge } = useBadge()
+
   return (
     <Tabs
       screenOptions={{
@@ -38,6 +41,7 @@ export default function AppLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Home} focused={focused} />,
+          tabBarBadge: confirmBadge > 0 ? confirmBadge : undefined,
         }}
       />
       <Tabs.Screen
@@ -52,6 +56,7 @@ export default function AppLayout() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Bell} focused={focused} />,
+          tabBarBadge: alertBadge > 0 ? alertBadge : undefined,
         }}
       />
       <Tabs.Screen

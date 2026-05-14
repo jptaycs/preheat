@@ -2,10 +2,13 @@ import React, { useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
+import { useFocusEffect } from 'expo-router'
+import { useCallback } from 'react'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
+import { useBadge } from '../../src/context/BadgeContext'
 
 type AlertType =
   | 'confirm_reminder'
@@ -67,6 +70,14 @@ const INITIAL_ALERTS: AlertItem[] = [
 export default function AlertsScreen() {
   const router = useRouter()
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS)
+  const { incAlertBadge, clearAlertBadge } = useBadge()
+
+  // Clear badge when the user is actively viewing this tab
+  useFocusEffect(
+    useCallback(() => {
+      clearAlertBadge()
+    }, [clearAlertBadge]),
+  )
 
   function addAlert(type: AlertType, title: string, body: string, urgent = false) {
     const newAlert: AlertItem = {
@@ -79,10 +90,12 @@ export default function AlertsScreen() {
       urgent,
     }
     setAlerts((prev) => [newAlert, ...prev])
+    incAlertBadge()
   }
 
   function markAllRead() {
     setAlerts((prev) => prev.map((a) => ({ ...a, unread: false })))
+    clearAlertBadge()
   }
 
   useWebSocket({

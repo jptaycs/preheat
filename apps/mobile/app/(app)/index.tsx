@@ -27,6 +27,7 @@ import {
   Calendar,
 } from 'lucide-react-native'
 import { useAuth } from '../../src/context/AuthContext'
+import { useBadge } from '../../src/context/BadgeContext'
 import { preheatRequestsApi, queueApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
@@ -61,6 +62,7 @@ function getInitials(name: string): string {
 
 export default function DashboardScreen() {
   const { user, logout, devLogin } = useAuth()
+  const { setConfirmBadge } = useBadge()
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
@@ -76,12 +78,21 @@ export default function DashboardScreen() {
       ])
       setMyRequests(reqs)
       setQueue(q)
+      const now = Date.now()
+      const pendingCount = reqs.filter((r) => {
+        if (r.status !== 'waiting') return false
+        if (__DEV__) return true
+        const opens = new Date(r.confirmOpensAt).getTime()
+        const deadline = new Date(r.confirmDeadline).getTime()
+        return now >= opens && now <= deadline
+      }).length
+      setConfirmBadge(pendingCount)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setConfirmBadge])
 
   useFocusEffect(
     useCallback(() => {

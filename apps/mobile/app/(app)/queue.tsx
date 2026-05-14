@@ -91,8 +91,8 @@ export default function QueueScreen() {
     try {
       await preheatRequestsApi.confirm(entry.id)
       await fetchQueue(selectedDate)
-    } catch {
-      // ignore
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Confirmation failed')
     } finally {
       setConfirming(null)
     }

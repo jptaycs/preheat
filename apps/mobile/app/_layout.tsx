@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider, useAuth } from '../src/context/AuthContext'
+import { BadgeProvider } from '../src/context/BadgeContext'
 import { usePushNotifications } from '../src/hooks/usePushNotifications'
 
 function Guard() {
@@ -44,8 +45,10 @@ function Guard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="light" />
-      <Guard />
+      <BadgeProvider>
+        <StatusBar style="light" />
+        <Guard />
+      </BadgeProvider>
     </AuthProvider>
   )
 }
