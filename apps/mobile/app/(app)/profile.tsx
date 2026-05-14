@@ -47,6 +47,7 @@ export default function ProfileScreen() {
   const [addError, setAddError] = useState<string | null>(null)
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
   // Notification preferences (loaded from API)
@@ -112,11 +113,12 @@ export default function ProfileScreen() {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onPress: async () => {
           setDeletingId(item.id)
+          setDeleteError(null)
           try {
             await aircraftApi.remove(item.id)
             setAircraft((prev) => prev.filter((a) => a.id !== item.id))
-          } catch {
-            // ignore
+          } catch (e) {
+            setDeleteError(e instanceof ApiError ? e.message : 'Failed to remove aircraft')
           } finally {
             setDeletingId(null)
           }
@@ -175,11 +177,6 @@ export default function ProfileScreen() {
             <View style={styles.statItem}>
               <Text style={styles.statNum}>{aircraft.length}</Text>
               <Text style={styles.statLabel}>Aircraft</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNum}>{user?.email ? '—' : '—'}</Text>
-              <Text style={styles.statLabel}>Flights</Text>
             </View>
           </View>
         </View>
@@ -352,6 +349,12 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           ))
+        )}
+
+        {deleteError && (
+          <View style={styles.inlineError}>
+            <Text style={styles.inlineErrorText}>{deleteError}</Text>
+          </View>
         )}
 
         {/* Sign out */}

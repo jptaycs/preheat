@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -85,6 +85,11 @@ export default function QueueScreen() {
       void fetchQueue(selectedDate)
     },
   })
+
+  useEffect(() => {
+    const interval = setInterval(() => void fetchQueue(selectedDate), 5000)
+    return () => clearInterval(interval)
+  }, [fetchQueue, selectedDate])
 
   async function handleConfirm(entry: QueueEntry) {
     setConfirming(entry.id)

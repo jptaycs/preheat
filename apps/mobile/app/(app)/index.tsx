@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -105,6 +105,11 @@ export default function DashboardScreen() {
       void fetchData()
     },
   })
+
+  useEffect(() => {
+    const interval = setInterval(() => void fetchData(), 5000)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   const activeRequest = myRequests.find((r) => r.status === 'active')
   const confirmNeeded = myRequests.filter((r) => {
