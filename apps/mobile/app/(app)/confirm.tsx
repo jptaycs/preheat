@@ -81,6 +81,8 @@ export default function ConfirmScreen() {
   const [pending, setPending] = useState<PreheatRequest[]>([])
   const [confirming, setConfirming] = useState<Set<string>>(new Set())
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -132,6 +134,20 @@ export default function ConfirmScreen() {
         n.delete(req.id)
         return n
       })
+    }
+  }
+
+  async function handleCancel(req: PreheatRequest) {
+    setCancelError(null)
+    setCancelling(true)
+    try {
+      await preheatRequestsApi.cancel(req.id)
+      router.replace('/(app)')
+    } catch (e) {
+      if (isMounted.current) {
+        setCancelError(e instanceof ApiError ? e.message : 'Cancellation failed')
+        setCancelling(false)
+      }
     }
   }
 
@@ -269,12 +285,19 @@ export default function ConfirmScreen() {
 
         {/* Cancel section */}
         <Text style={styles.cancelHint}>I won't be able to make it</Text>
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={[styles.cancelBtn, cancelling && { opacity: 0.5 }]}
+          onPress={() => void handleCancel(req)}
+          disabled={cancelling}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <XCircle size={16} color={colors.red} />
-            <Text style={styles.cancelBtnText}>Cancel My Preheat Request</Text>
+            <Text style={styles.cancelBtnText}>
+              {cancelling ? 'Cancelling…' : 'Cancel My Preheat Request'}
+            </Text>
           </View>
         </TouchableOpacity>
+        {cancelError && <Text style={styles.cancelErrorText}>{cancelError}</Text>}
 
         {/* Show remaining if more than 1 */}
         {pending.length > 1 && (
@@ -485,6 +508,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   cancelBtnText: { color: colors.red, fontWeight: '600', fontSize: 14 },
+  cancelErrorText: {
+    color: colors.red,
+    fontSize: font.sm,
+    textAlign: 'center',
+    marginTop: 8,
+    marginHorizontal: 20,
+  },
   moreText: {
     fontSize: 12,
     color: colors.t3,
