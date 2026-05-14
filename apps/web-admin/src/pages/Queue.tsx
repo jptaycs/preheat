@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { QueueEntry, QueueResponse } from '../lib/api'
 import { queueApi, sessionsApi } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import { onWsEvent } from '../lib/ws'
 import { theme } from '../theme'
 
@@ -48,8 +49,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function QueueCard({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => void }) {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   const startPreheat = async () => {
     setBusy(true)
@@ -66,8 +69,23 @@ function QueueCard({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => v
     }
   }
 
+  const cancelRequest = async () => {
+    setBusy(true)
+    setErr(null)
+    try {
+      await queueApi.cancelRequest(entry.id)
+      onRefresh()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to cancel')
+      setBusy(false)
+    }
+  }
+
   const isActive = entry.status === 'active'
   const isConfirmed = entry.status === 'confirmed'
+  const isWaiting = entry.status === 'waiting'
+  const canCancel =
+    (isWaiting || isConfirmed) && (user?.role === 'mechanic' || user?.role === 'admin')
 
   return (
     <div
@@ -187,8 +205,8 @@ function QueueCard({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => v
       )}
 
       {/* Actions */}
-      {(isConfirmed || isActive) && (
-        <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+      {(isConfirmed || isActive || canCancel) && (
+        <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
           {isConfirmed && (
             <button
               disabled={busy}
@@ -229,17 +247,83 @@ function QueueCard({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => v
               Track →
             </button>
           )}
+          {canCancel && !confirmCancel && (
+            <button
+              disabled={busy}
+              onClick={() => setConfirmCancel(true)}
+              style={{
+                padding: '10px 16px',
+                background: 'transparent',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: 10,
+                color: theme.colors.t2,
+                fontWeight: 600,
+                fontSize: theme.fontSizes.sm,
+                cursor: busy ? 'not-allowed' : 'pointer',
+                marginLeft: 'auto',
+              }}
+            >
+              Cancel slot
+            </button>
+          )}
+          {canCancel && confirmCancel && (
+            <div
+              style={{
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: `${theme.colors.red}14`,
+                border: `1px solid ${theme.colors.red}44`,
+                borderRadius: 10,
+                padding: '6px 12px',
+              }}
+            >
+              <span
+                style={{ fontSize: theme.fontSizes.xs, color: theme.colors.red, fontWeight: 600 }}
+              >
+                Cancel this slot?
+              </span>
+              <button
+                disabled={busy}
+                onClick={() => void cancelRequest()}
+                style={{
+                  padding: '4px 12px',
+                  background: theme.colors.red,
+                  border: 'none',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: theme.fontSizes.xs,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy ? 0.6 : 1,
+                }}
+              >
+                {busy ? '…' : 'Yes, cancel'}
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => setConfirmCancel(false)}
+                style={{
+                  padding: '4px 10px',
+                  background: 'transparent',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: 6,
+                  color: theme.colors.t2,
+                  fontWeight: 600,
+                  fontSize: theme.fontSizes.xs,
+                  cursor: 'pointer',
+                }}
+              >
+                Keep
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {err && (
-        <div
-          style={{
-            marginTop: 10,
-            color: theme.colors.red,
-            fontSize: theme.fontSizes.xs,
-          }}
-        >
+        <div style={{ marginTop: 10, color: theme.colors.red, fontSize: theme.fontSizes.xs }}>
           {err}
         </div>
       )}

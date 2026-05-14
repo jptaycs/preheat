@@ -161,6 +161,10 @@ export const queueApi = {
     const qs = date ? `?date=${encodeURIComponent(date)}` : ''
     return request(`/queue${qs}`)
   },
+
+  cancelRequest(requestId: string): Promise<{ success: boolean }> {
+    return request(`/queue/${requestId}`, { method: 'DELETE' })
+  },
 }
 
 // ── Sessions API ───────────────────────────────────────────────────────────

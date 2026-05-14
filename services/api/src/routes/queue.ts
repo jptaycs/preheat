@@ -1,6 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { db } from '../db/client.js'
-import { authenticate } from '../middleware/authenticate.js'
+import { authenticate, requireRole } from '../middleware/authenticate.js'
+import { broadcast } from '../lib/broadcast.js'
+
+const mechanic = requireRole('mechanic')
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function queueRoutes(app: FastifyInstance) {
@@ -84,5 +87,65 @@ export async function queueRoutes(app: FastifyInstance) {
     }
 
     return reply.send({ date: date ?? 'all', entries, stats })
+  })
+
+  // DELETE /queue/:id — mechanic cancels a waiting or confirmed request on behalf of a pilot
+  app.delete<{ Params: { id: string } }>('/:id', { preHandler: [mechanic] }, async (req, reply) => {
+    const result = await db.query<{
+      id: string
+      queue_position: number
+      request_date: string
+      status: string
+    }>(
+      `SELECT id, queue_position, request_date, status
+         FROM preheat_requests
+         WHERE id = $1`,
+      [req.params.id],
+    )
+
+    if (result.rows.length === 0) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Preheat request not found',
+      })
+    }
+
+    const row = result.rows[0]
+
+    if (row.status === 'cancelled') {
+      return reply.status(409).send({
+        statusCode: 409,
+        error: 'Conflict',
+        message: 'Request is already cancelled',
+      })
+    }
+
+    if (row.status === 'active' || row.status === 'completed') {
+      return reply.status(409).send({
+        statusCode: 409,
+        error: 'Conflict',
+        message: `Cannot cancel a request that is already ${row.status}`,
+      })
+    }
+
+    await db.query(
+      `UPDATE preheat_requests
+         SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+         WHERE id = $1`,
+      [req.params.id],
+    )
+
+    await db.query(
+      `UPDATE preheat_requests
+         SET queue_position = queue_position - 1, updated_at = NOW()
+         WHERE request_date = $1
+           AND queue_position > $2
+           AND status NOT IN ('cancelled')`,
+      [row.request_date, row.queue_position],
+    )
+
+    broadcast(app, 'queue.updated', { requestDate: row.request_date })
+    return reply.status(200).send({ success: true })
   })
 }
