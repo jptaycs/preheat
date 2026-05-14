@@ -68,7 +68,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     if (isRefreshing) {
       return new Promise<T>((resolve, reject) => {
         pendingRequests.push((_token) => {
-          request<T>(path, { ...options, auth: false, body: options.body })
+          request<T>(path, options)
             .then(resolve)
             .catch((e: unknown) => {
               reject(e)
