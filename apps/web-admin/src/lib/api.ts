@@ -8,6 +8,7 @@ export interface QueueEntry {
   confirmOpensAt: string
   confirmDeadline: string
   status: string
+  notes?: string
   pilotFirstName: string
   tailNumber: string
   aircraftType: string

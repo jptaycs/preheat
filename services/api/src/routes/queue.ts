@@ -19,6 +19,7 @@ export async function queueRoutes(app: FastifyInstance) {
       confirm_opens_at: string
       confirm_deadline: string
       status: string
+      notes: string | null
       pilot_first_name: string
       tail_number: string
       aircraft_type: string
@@ -30,7 +31,7 @@ export async function queueRoutes(app: FastifyInstance) {
              r.id, r.queue_position, r.request_date,
              r.engine_start_time, r.assigned_time,
              r.confirm_opens_at, r.confirm_deadline,
-             r.status,
+             r.status, r.notes,
              split_part(u.name, ' ', 1) AS pilot_first_name,
              a.tail_number, a.type AS aircraft_type,
              (r.pilot_id = $2) AS is_mine,
@@ -46,7 +47,7 @@ export async function queueRoutes(app: FastifyInstance) {
              r.id, r.queue_position, r.request_date,
              r.engine_start_time, r.assigned_time,
              r.confirm_opens_at, r.confirm_deadline,
-             r.status,
+             r.status, r.notes,
              split_part(u.name, ' ', 1) AS pilot_first_name,
              a.tail_number, a.type AS aircraft_type,
              (r.pilot_id = $1) AS is_mine,
@@ -68,6 +69,7 @@ export async function queueRoutes(app: FastifyInstance) {
       confirmOpensAt: r.confirm_opens_at,
       confirmDeadline: r.confirm_deadline,
       status: r.status,
+      notes: r.notes ?? undefined,
       pilotFirstName: r.pilot_first_name,
       tailNumber: r.tail_number,
       aircraftType: r.aircraft_type,

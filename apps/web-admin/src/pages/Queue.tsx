@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import type { QueueEntry, QueueResponse, SessionDetail } from '../lib/api'
-import { queueApi, sessionsApi, preheatRequestsApi } from '../lib/api'
+import { useNavigate } from 'react-router-dom'
+import type { QueueEntry, QueueResponse } from '../lib/api'
+import { queueApi, sessionsApi } from '../lib/api'
 import { onWsEvent } from '../lib/ws'
 import { theme } from '../theme'
 
@@ -14,13 +15,7 @@ function fmt(iso: string): string {
   }
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-const ALL_STATUSES = ['all', 'waiting', 'confirmed', 'active', 'completed', 'cancelled']
-
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLOR: Record<string, string> = {
   waiting: theme.colors.yellow,
   confirmed: theme.colors.blue,
   active: theme.colors.orange,
@@ -29,18 +24,18 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? theme.colors.t2
+  const color = STATUS_COLOR[status] ?? theme.colors.t2
   return (
     <span
       style={{
         display: 'inline-block',
-        padding: '2px 10px',
+        padding: '3px 10px',
         borderRadius: 99,
         background: `${color}22`,
         border: `1px solid ${color}66`,
         color,
         fontSize: theme.fontSizes.xs,
-        fontWeight: 600,
+        fontWeight: 700,
         textTransform: 'capitalize',
       }}
     >
@@ -49,228 +44,237 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-// ── Session detail panel ───────────────────────────────────────────────────
+// ── Queue card ─────────────────────────────────────────────────────────────
 
-function SessionPanel({ session }: { session: SessionDetail }) {
-  return (
-    <div
-      style={{
-        background: theme.colors.s2,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing.md,
-        marginTop: theme.spacing.sm,
-      }}
-    >
-      <div
-        style={{
-          fontSize: theme.fontSizes.xs,
-          color: theme.colors.t2,
-          marginBottom: theme.spacing.sm,
-        }}
-      >
-        Session started {fmt(session.startedAt)}
-        {session.completedAt && ` · Completed ${fmt(session.completedAt)}`}
-      </div>
-      {session.readings.length > 0 ? (
-        <div style={{ display: 'flex', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-          {session.readings.map((r, i) => (
-            <div
-              key={i}
-              style={{
-                background: theme.colors.s1,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.sm,
-                padding: '4px 10px',
-                fontSize: theme.fontSizes.xs,
-                color: theme.colors.text,
-              }}
-            >
-              <span style={{ color: theme.colors.orange, fontWeight: 700 }}>{r.tempCelsius}°C</span>
-              <span style={{ color: theme.colors.t2, marginLeft: 4 }}>{fmt(r.recordedAt)}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ fontSize: theme.fontSizes.xs, color: theme.colors.t3 }}>
-          No temperature readings yet.
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Row actions ────────────────────────────────────────────────────────────
-
-function RowActions({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => void }) {
-  const [temp, setTemp] = useState('')
+function QueueCard({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => void }) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const run = async (fn: () => Promise<unknown>) => {
-    setErr(null)
+  const startPreheat = async () => {
     setBusy(true)
+    setErr(null)
     try {
-      await fn()
+      await sessionsApi.start(entry.id)
       onRefresh()
+      navigate(
+        `/track/${entry.id}?tail=${entry.tailNumber}&aircraft=${entry.aircraftType}&pilot=${entry.pilotFirstName}`,
+      )
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Error')
-    } finally {
+      setErr(e instanceof Error ? e.message : 'Failed to start')
       setBusy(false)
     }
   }
 
-  const btnBase: React.CSSProperties = {
-    padding: '4px 12px',
-    borderRadius: theme.radius.sm,
-    fontSize: theme.fontSizes.xs,
-    fontWeight: 600,
-    cursor: busy ? 'not-allowed' : 'pointer',
-    border: 'none',
-    opacity: busy ? 0.5 : 1,
-  }
+  const isActive = entry.status === 'active'
+  const isConfirmed = entry.status === 'confirmed'
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
-      {entry.status === 'confirmed' && (
-        <button
-          style={{ ...btnBase, background: theme.colors.orange, color: '#fff' }}
-          disabled={busy}
-          onClick={() => {
-            void run(() => sessionsApi.start(entry.id))
-          }}
-        >
-          Start Preheat
-        </button>
-      )}
-
-      {entry.status === 'active' && entry.sessionId && (
-        <>
-          <input
-            type="number"
-            value={temp}
-            onChange={(e) => setTemp(e.target.value)}
-            placeholder="°C"
+    <div
+      style={{
+        background: theme.colors.s1,
+        border: `1px solid ${isActive ? theme.colors.orange + '66' : theme.colors.border}`,
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 12,
+        boxShadow: isActive ? `0 0 16px ${theme.colors.orange}18` : 'none',
+      }}
+    >
+      {/* Top row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div
             style={{
-              width: 64,
-              padding: '4px 8px',
-              background: theme.colors.s2,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.sm,
+              fontSize: theme.fontSizes.xl,
+              fontWeight: 800,
               color: theme.colors.text,
-              fontSize: theme.fontSizes.xs,
-            }}
-          />
-          <button
-            style={{ ...btnBase, background: theme.colors.blue, color: '#fff' }}
-            disabled={busy || !temp}
-            onClick={() => {
-              void run(() => sessionsApi.addReading(entry.sessionId!, parseFloat(temp)))
+              letterSpacing: '-0.5px',
             }}
           >
-            Update Temp
-          </button>
-          <button
-            style={{ ...btnBase, background: theme.colors.green, color: '#000' }}
-            disabled={busy}
-            onClick={() => {
-              void run(() => sessionsApi.complete(entry.sessionId!))
-            }}
-          >
-            Complete
-          </button>
-        </>
-      )}
+            {entry.tailNumber}
+          </div>
+          <div style={{ fontSize: theme.fontSizes.sm, color: theme.colors.t2, marginTop: 2 }}>
+            {entry.aircraftType} · Pilot: {entry.pilotFirstName}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: theme.fontSizes.xs, color: theme.colors.t3 }}>
+            #{entry.queuePosition}
+          </span>
+          <StatusBadge status={entry.status} />
+        </div>
+      </div>
 
-      {(entry.status === 'waiting' || entry.status === 'confirmed') && (
-        <button
+      {/* Time row */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 24,
+          marginTop: 14,
+          paddingTop: 14,
+          borderTop: `1px solid ${theme.colors.border}`,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: theme.colors.t3,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+              marginBottom: 2,
+            }}
+          >
+            Engine Start
+          </div>
+          <div style={{ fontSize: theme.fontSizes.md, fontWeight: 700, color: theme.colors.text }}>
+            {fmt(entry.engineStartTime)}
+          </div>
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: theme.colors.t3,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+              marginBottom: 2,
+            }}
+          >
+            Assigned
+          </div>
+          <div style={{ fontSize: theme.fontSizes.md, fontWeight: 700, color: theme.colors.text }}>
+            {fmt(entry.assignedTime)}
+          </div>
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: theme.colors.t3,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+              marginBottom: 2,
+            }}
+          >
+            Confirm Window
+          </div>
+          <div style={{ fontSize: theme.fontSizes.sm, color: theme.colors.t2 }}>
+            {fmt(entry.confirmOpensAt)} – {fmt(entry.confirmDeadline)}
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {entry.notes && (
+        <div
           style={{
-            ...btnBase,
-            background: theme.colors.s2,
-            color: theme.colors.red,
-            border: `1px solid ${theme.colors.red}44`,
-          }}
-          disabled={busy}
-          onClick={() => {
-            void run(() => preheatRequestsApi.cancel(entry.id))
+            marginTop: 12,
+            padding: '8px 12px',
+            background: `${theme.colors.yellow}14`,
+            border: `1px solid ${theme.colors.yellow}44`,
+            borderRadius: 8,
+            fontSize: theme.fontSizes.xs,
+            color: theme.colors.t2,
           }}
         >
-          Cancel
-        </button>
+          <span style={{ fontWeight: 700, color: theme.colors.yellow, marginRight: 6 }}>Note:</span>
+          {entry.notes}
+        </div>
       )}
 
-      {err && <span style={{ color: theme.colors.red, fontSize: theme.fontSizes.xs }}>{err}</span>}
+      {/* Actions */}
+      {(isConfirmed || isActive) && (
+        <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+          {isConfirmed && (
+            <button
+              disabled={busy}
+              onClick={() => void startPreheat()}
+              style={{
+                padding: '10px 22px',
+                background: theme.colors.orange,
+                border: 'none',
+                borderRadius: 10,
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: theme.fontSizes.sm,
+                cursor: busy ? 'not-allowed' : 'pointer',
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              {busy ? 'Starting…' : 'Start Preheat'}
+            </button>
+          )}
+          {isActive && (
+            <button
+              onClick={() =>
+                navigate(
+                  `/track/${entry.id}?tail=${entry.tailNumber}&aircraft=${entry.aircraftType}&pilot=${entry.pilotFirstName}`,
+                )
+              }
+              style={{
+                padding: '10px 22px',
+                background: theme.colors.blue,
+                border: 'none',
+                borderRadius: 10,
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: theme.fontSizes.sm,
+                cursor: 'pointer',
+              }}
+            >
+              Track →
+            </button>
+          )}
+        </div>
+      )}
+
+      {err && (
+        <div
+          style={{
+            marginTop: 10,
+            color: theme.colors.red,
+            fontSize: theme.fontSizes.xs,
+          }}
+        >
+          {err}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Expanded row ───────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-function ExpandedRow({ entry, onRefresh }: { entry: QueueEntry; onRefresh: () => void }) {
-  const [session, setSession] = useState<SessionDetail | null>(null)
-
-  useEffect(() => {
-    if (entry.sessionId) {
-      void sessionsApi
-        .getByRequest(entry.id)
-        .then(setSession)
-        .catch(() => setSession(null))
-    }
-  }, [entry.id, entry.sessionId])
-
-  return (
-    <td
-      colSpan={9}
-      style={{
-        padding: `${theme.spacing.sm} ${theme.spacing.xl}`,
-        background: `${theme.colors.s2}80`,
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}
-    >
-      <div style={{ display: 'flex', gap: theme.spacing.xl, alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: theme.fontSizes.xs,
-              color: theme.colors.t2,
-              marginBottom: theme.spacing.xs,
-            }}
-          >
-            Confirm window: {fmt(entry.confirmOpensAt)} – {fmt(entry.confirmDeadline)}
-          </div>
-          <RowActions entry={entry} onRefresh={onRefresh} />
-        </div>
-        {session && (
-          <div style={{ flex: 2 }}>
-            <SessionPanel session={session} />
-          </div>
-        )}
-      </div>
-    </td>
-  )
+function todayLocal(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
 }
 
-// ── Main component ─────────────────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────────────
 
 export default function Queue() {
-  const [dateFrom, setDateFrom] = useState(todayISO())
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [date, setDate] = useState<string>(todayLocal)
   const [data, setData] = useState<QueueResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
       setError(null)
-      const res = await queueApi.get(dateFrom)
+      const res = await queueApi.get(date)
       setData(res)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load queue')
     } finally {
       setLoading(false)
     }
-  }, [dateFrom])
+  }, [date])
 
   useEffect(() => {
     setLoading(true)
@@ -279,103 +283,80 @@ export default function Queue() {
 
   useEffect(() => {
     const unsubs = [
-      onWsEvent('queue.updated', () => {
-        void load()
-      }),
-      onWsEvent('session.started', () => {
-        void load()
-      }),
-      onWsEvent('session.completed', () => {
-        void load()
-      }),
+      onWsEvent('queue.updated', () => void load()),
+      onWsEvent('session.started', () => void load()),
+      onWsEvent('session.completed', () => void load()),
     ]
     return () => unsubs.forEach((u) => u())
   }, [load])
 
-  const entries = (data?.entries ?? []).filter(
-    (e) => statusFilter === 'all' || e.status === statusFilter,
-  )
+  // Polling fallback
+  useEffect(() => {
+    const interval = setInterval(() => void load(), 5000)
+    return () => clearInterval(interval)
+  }, [load])
 
-  const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id))
+  const entries = data?.entries ?? []
+  const active = entries.filter((e) => e.status === 'active')
+  const confirmed = entries.filter((e) => e.status === 'confirmed')
+  const waiting = entries.filter((e) => e.status === 'waiting')
+  const completed = entries.filter((e) => e.status === 'completed')
 
   return (
-    <div style={{ padding: theme.spacing.xl }}>
+    <div>
       {/* Header */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: theme.spacing.xl,
-          flexWrap: 'wrap',
-          gap: theme.spacing.md,
+          alignItems: 'center',
+          marginBottom: 24,
         }}
       >
-        <h1 style={{ fontSize: theme.fontSizes.xl, fontWeight: 700, color: theme.colors.text }}>
-          Queue Management
-        </h1>
-
-        <div
-          style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          {/* Status filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+        <div>
+          <h1
             style={{
-              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-              background: theme.colors.s1,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.md,
+              fontSize: theme.fontSizes.xl,
+              fontWeight: 800,
               color: theme.colors.text,
-              fontSize: theme.fontSizes.sm,
+              marginBottom: 8,
             }}
           >
-            {ALL_STATUSES.map((s) => (
-              <option key={s} value={s} style={{ background: theme.colors.s1 }}>
-                {s === 'all' ? 'All statuses' : s.charAt(0).toUpperCase() + s.slice(1)}
-              </option>
-            ))}
-          </select>
-
-          {/* Date picker */}
+            Queue
+          </h1>
           <input
             type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={dateInputStyle}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            style={{
+              padding: '6px 12px',
+              background: theme.colors.s2,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: 8,
+              color: theme.colors.text,
+              fontSize: theme.fontSizes.sm,
+              cursor: 'pointer',
+              outline: 'none',
+            }}
           />
         </div>
-      </div>
 
-      {/* Summary counts */}
-      {data && (
-        <div
-          style={{
-            display: 'flex',
-            gap: theme.spacing.lg,
-            marginBottom: theme.spacing.lg,
-            flexWrap: 'wrap',
-          }}
-        >
-          {Object.entries(data.stats).map(([key, val]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: STATUS_COLORS[key] ?? theme.colors.t2,
-                  display: 'inline-block',
-                }}
-              />
-              <span style={{ fontSize: theme.fontSizes.sm, color: theme.colors.t2 }}>
-                {key}: <strong style={{ color: theme.colors.text }}>{val}</strong>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+        {data && (
+          <div style={{ display: 'flex', gap: 16 }}>
+            {[
+              { label: 'Waiting', val: data.stats.waiting, color: theme.colors.yellow },
+              { label: 'Confirmed', val: data.stats.confirmed, color: theme.colors.blue },
+              { label: 'Active', val: data.stats.active, color: theme.colors.orange },
+              { label: 'Done', val: data.stats.completed, color: theme.colors.green },
+            ].map(({ label, val, color }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: theme.fontSizes.xl, fontWeight: 800, color }}>{val}</div>
+                <div style={{ fontSize: 10, color: theme.colors.t3, fontWeight: 600 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Error */}
       {error && (
@@ -383,163 +364,109 @@ export default function Queue() {
           style={{
             background: `${theme.colors.red}22`,
             border: `1px solid ${theme.colors.red}44`,
-            borderRadius: theme.radius.md,
-            padding: theme.spacing.md,
+            borderRadius: 12,
+            padding: 16,
             color: theme.colors.red,
-            marginBottom: theme.spacing.lg,
+            marginBottom: 20,
+            fontSize: theme.fontSizes.sm,
           }}
         >
           {error}
         </div>
       )}
 
-      {/* Table */}
-      <div
-        style={{
-          background: theme.colors.s1,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.radius.lg,
-          overflow: 'hidden',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-              <th style={thStyle} />
-              {[
-                '#',
-                'Tail #',
-                'Aircraft',
-                'Pilot',
-                'Engine Start',
-                'Assigned',
-                'Confirm Window',
-                'Status',
-              ].map((col) => (
-                <th key={col} style={thStyle}>
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={9} style={emptyTdStyle}>
-                  Loading…
-                </td>
-              </tr>
-            )}
-            {!loading && entries.length === 0 && (
-              <tr>
-                <td colSpan={9} style={emptyTdStyle}>
-                  No requests match the selected filters.
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              entries.map((entry, i) => {
-                const isExpanded = expandedId === entry.id
-                return (
-                  <React.Fragment key={entry.id}>
-                    <tr
-                      style={{
-                        borderBottom: `1px solid ${theme.colors.border}`,
-                        background: isExpanded
-                          ? `${theme.colors.blue}10`
-                          : i % 2 === 1
-                            ? `${theme.colors.s2}60`
-                            : 'transparent',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => toggleExpand(entry.id)}
-                    >
-                      {/* Expand chevron */}
-                      <td
-                        style={{
-                          ...tdStyle,
-                          width: 32,
-                          textAlign: 'center',
-                          color: theme.colors.t2,
-                        }}
-                      >
-                        {isExpanded ? '▾' : '▸'}
-                      </td>
-                      <td style={tdStyle}>{entry.queuePosition}</td>
-                      <td style={{ ...tdStyle, fontWeight: 600 }}>{entry.tailNumber}</td>
-                      <td style={{ ...tdStyle, color: theme.colors.t2 }}>{entry.aircraftType}</td>
-                      <td style={{ ...tdStyle, color: theme.colors.t2 }}>{entry.pilotFirstName}</td>
-                      <td style={tdStyle}>{fmt(entry.engineStartTime)}</td>
-                      <td style={tdStyle}>{fmt(entry.assignedTime)}</td>
-                      <td
-                        style={{ ...tdStyle, color: theme.colors.t2, fontSize: theme.fontSizes.xs }}
-                      >
-                        {fmt(entry.confirmOpensAt)} – {fmt(entry.confirmDeadline)}
-                      </td>
-                      <td style={tdStyle}>
-                        <StatusBadge status={entry.status} />
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr>
-                        <ExpandedRow
-                          entry={entry}
-                          onRefresh={() => {
-                            void load()
-                          }}
-                        />
-                      </tr>
-                    )}
-                  </React.Fragment>
-                )
-              })}
-          </tbody>
-        </table>
-      </div>
+      {/* Loading */}
+      {loading && (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: 48,
+            color: theme.colors.t2,
+            fontSize: theme.fontSizes.sm,
+          }}
+        >
+          Loading…
+        </div>
+      )}
 
-      <div
-        style={{
-          marginTop: theme.spacing.sm,
-          fontSize: theme.fontSizes.xs,
-          color: theme.colors.t3,
-        }}
-      >
-        Click a row to expand session details and actions. Auto-refreshes via WebSocket.
-      </div>
+      {/* Cards */}
+      {!loading && (
+        <>
+          {entries.length === 0 && (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: 64,
+                color: theme.colors.t3,
+                fontSize: theme.fontSizes.sm,
+              }}
+            >
+              No requests for today.
+            </div>
+          )}
+
+          {active.length > 0 && (
+            <Section label="Active" color={theme.colors.orange}>
+              {active.map((e) => (
+                <QueueCard key={e.id} entry={e} onRefresh={() => void load()} />
+              ))}
+            </Section>
+          )}
+
+          {confirmed.length > 0 && (
+            <Section label="Confirmed" color={theme.colors.blue}>
+              {confirmed.map((e) => (
+                <QueueCard key={e.id} entry={e} onRefresh={() => void load()} />
+              ))}
+            </Section>
+          )}
+
+          {waiting.length > 0 && (
+            <Section label="Waiting" color={theme.colors.yellow}>
+              {waiting.map((e) => (
+                <QueueCard key={e.id} entry={e} onRefresh={() => void load()} />
+              ))}
+            </Section>
+          )}
+
+          {completed.length > 0 && (
+            <Section label="Completed" color={theme.colors.green}>
+              {completed.map((e) => (
+                <QueueCard key={e.id} entry={e} onRefresh={() => void load()} />
+              ))}
+            </Section>
+          )}
+        </>
+      )}
     </div>
   )
 }
 
-const thStyle: React.CSSProperties = {
-  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-  textAlign: 'left',
-  fontSize: theme.fontSizes.xs,
-  color: theme.colors.t2,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  whiteSpace: 'nowrap',
-}
-
-const tdStyle: React.CSSProperties = {
-  padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-  fontSize: theme.fontSizes.sm,
-  color: theme.colors.text,
-  whiteSpace: 'nowrap',
-}
-
-const emptyTdStyle: React.CSSProperties = {
-  padding: theme.spacing.xl,
-  textAlign: 'center',
-  color: theme.colors.t2,
-  fontSize: theme.fontSizes.sm,
-}
-
-const dateInputStyle: React.CSSProperties = {
-  padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-  background: theme.colors.s1,
-  border: `1px solid ${theme.colors.border}`,
-  borderRadius: theme.radius.md,
-  color: theme.colors.text,
-  fontSize: theme.fontSizes.sm,
+function Section({
+  label,
+  color,
+  children,
+}: {
+  label: string
+  color: string
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          marginBottom: 10,
+          paddingLeft: 4,
+        }}
+      >
+        {label}
+      </div>
+      {children}
+    </div>
+  )
 }
