@@ -90,6 +90,32 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
     broadcast(app, 'session.started', { sessionId: row.id, requestId })
     broadcast(app, 'queue.updated', { requestDate: preheatRequest.request_date })
 
+    // Push notification to pilot (if preheat progress notifications are enabled)
+    const pilotPushResult = await db.query<{
+      push_token: string | null
+      notification_prefs: { preheatProgress?: boolean } | null
+      tail_number: string
+    }>(
+      `SELECT u.push_token, u.notification_prefs, a.tail_number
+       FROM users u
+       JOIN preheat_requests r ON r.pilot_id = u.id
+       JOIN aircraft a ON a.id = r.aircraft_id
+       WHERE r.id = $1`,
+      [requestId],
+    )
+    const pilotPush = pilotPushResult.rows[0]
+    if (pilotPush?.push_token && pilotPush.notification_prefs?.preheatProgress !== false) {
+      void sendPushNotification([
+        {
+          to: pilotPush.push_token,
+          title: 'Preheat Started',
+          body: `Preheat for ${pilotPush.tail_number} has begun. We'll notify you when it's done.`,
+          sound: 'default',
+          data: { requestId, screen: 'track' },
+        },
+      ])
+    }
+
     return reply.status(201).send({ id: row.id, startedAt: row.started_at })
   })
 
