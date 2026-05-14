@@ -212,13 +212,13 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
         broadcast(app, 'session.completed', { sessionId: req.params.id, requestId: request_id })
         broadcast(app, 'queue.updated', { requestDate: preheatReq.request_date })
 
-        // Push notification to pilot
-        const pilotResult = await db.query<{ push_token: string | null }>(
-          'SELECT push_token FROM users WHERE id = $1',
-          [preheatReq.pilot_id],
-        )
-        const pushToken = pilotResult.rows[0]?.push_token
-        if (pushToken) {
+        // Push notification to pilot (if preheat progress notifications are enabled)
+        const pilotResult = await db.query<{
+          push_token: string | null
+          notification_prefs: { preheatProgress?: boolean } | null
+        }>('SELECT push_token, notification_prefs FROM users WHERE id = $1', [preheatReq.pilot_id])
+        const { push_token: pushToken, notification_prefs: prefs } = pilotResult.rows[0] ?? {}
+        if (pushToken && prefs?.preheatProgress !== false) {
           void sendPushNotification([
             {
               to: pushToken,
@@ -331,13 +331,11 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
         [req.params.requestId, req.userId],
       )
       if (ownerCheck.rows.length === 0) {
-        return reply
-          .status(404)
-          .send({
-            statusCode: 404,
-            error: 'Not Found',
-            message: 'No session found for this request',
-          })
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'No session found for this request',
+        })
       }
     }
 

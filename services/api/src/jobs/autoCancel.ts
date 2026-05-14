@@ -62,13 +62,13 @@ export function startAutoCancelJob(app: FastifyInstance) {
 
         affectedDates.add(req.request_date)
 
-        // Send push notification to the pilot
-        const pilotResult = await db.query<{ push_token: string | null }>(
-          'SELECT push_token FROM users WHERE id = $1',
-          [req.pilot_id],
-        )
-        const pushToken = pilotResult.rows[0]?.push_token
-        if (pushToken) {
+        // Send push notification to the pilot (if they haven't disabled schedule alerts)
+        const pilotResult = await db.query<{
+          push_token: string | null
+          notification_prefs: { scheduleAlerts?: boolean } | null
+        }>('SELECT push_token, notification_prefs FROM users WHERE id = $1', [req.pilot_id])
+        const { push_token: pushToken, notification_prefs: prefs } = pilotResult.rows[0] ?? {}
+        if (pushToken && prefs?.scheduleAlerts !== false) {
           void sendPushNotification([
             {
               to: pushToken,

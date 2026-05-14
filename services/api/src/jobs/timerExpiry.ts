@@ -12,6 +12,7 @@ interface ExpiredSessionRow {
   pilot_id: string
   aircraft_id: string
   pilot_push_token: string | null
+  pilot_notification_prefs: { preheatProgress?: boolean } | null
   mechanic_push_token: string | null
   tail_number: string
 }
@@ -26,6 +27,7 @@ export function startTimerExpiryJob(app: FastifyInstance) {
           `SELECT s.id AS session_id, s.request_id, s.started_at, s.duration_minutes,
                   r.pilot_id, r.aircraft_id,
                   u.push_token AS pilot_push_token,
+                  u.notification_prefs AS pilot_notification_prefs,
                   m.push_token AS mechanic_push_token,
                   a.tail_number
            FROM preheat_sessions s
@@ -56,7 +58,7 @@ export function startTimerExpiryJob(app: FastifyInstance) {
             sound?: 'default'
           }[] = []
 
-          if (row.pilot_push_token) {
+          if (row.pilot_push_token && row.pilot_notification_prefs?.preheatProgress !== false) {
             messages.push({
               to: row.pilot_push_token,
               title: 'Preheat Timer Done',
