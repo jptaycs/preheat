@@ -112,6 +112,7 @@ export default function DashboardScreen() {
   }, [fetchData])
 
   const activeRequest = myRequests.find((r) => r.status === 'active')
+  const mechanicActiveEntry = queue?.entries.find((e) => e.status === 'active')
   const confirmNeeded = myRequests.filter((r) => {
     if (r.status !== 'waiting') return false
     if (__DEV__) return true
@@ -264,6 +265,46 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(app)/confirm')}
             >
               <Text style={styles.confirmFlightBtnText}>Confirm My Attendance →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Mechanic active session card */}
+        {!loading && user?.role === 'mechanic' && mechanicActiveEntry && (
+          <View style={styles.flightCard}>
+            <View style={styles.flightCardHeader}>
+              <Text style={styles.flightTail}>{mechanicActiveEntry.tailNumber}</Text>
+              <StatusPill status="active" />
+            </View>
+            <View style={styles.flightGrid}>
+              <View style={styles.flightGridItem}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Plane size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Pilot</Text>
+                </View>
+                <Text style={styles.flightGridValue}>{mechanicActiveEntry.pilotFirstName}</Text>
+              </View>
+              <View style={styles.flightGridItem}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Flame size={10} color={colors.t3} />
+                  <Text style={styles.flightGridLabel}>Engine Start</Text>
+                </View>
+                <Text style={styles.flightGridValue}>
+                  {fmtTime(mechanicActiveEntry.engineStartTime)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.flightBtn}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/track',
+                  params: { requestId: mechanicActiveEntry.id },
+                })
+              }
+            >
+              <Text style={styles.flightBtnText}>Track Active Session →</Text>
             </TouchableOpacity>
           </View>
         )}
