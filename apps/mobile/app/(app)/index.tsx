@@ -114,6 +114,7 @@ export default function DashboardScreen() {
   const activeRequest = myRequests.find((r) => r.status === 'active')
   const confirmNeeded = myRequests.filter((r) => {
     if (r.status !== 'waiting') return false
+    if (__DEV__) return true
     const now = Date.now()
     const opens = new Date(r.confirmOpensAt).getTime()
     const deadline = new Date(r.confirmDeadline).getTime()
@@ -271,11 +272,16 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
           <View style={styles.quickRow}>
-            <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/request')}>
-              <PlusCircle size={28} color={colors.blue} />
-              <Text style={styles.quickLabel}>Request</Text>
-              <Text style={styles.quickSub}>Preheat</Text>
-            </TouchableOpacity>
+            {user?.role === 'pilot' && (
+              <TouchableOpacity
+                style={styles.quickBox}
+                onPress={() => router.push('/(app)/request')}
+              >
+                <PlusCircle size={28} color={colors.blue} />
+                <Text style={styles.quickLabel}>Request</Text>
+                <Text style={styles.quickSub}>Preheat</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/queue')}>
               <ListOrdered size={28} color={colors.orange} />
               <Text style={styles.quickLabel}>View</Text>
