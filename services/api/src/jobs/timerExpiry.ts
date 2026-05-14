@@ -85,6 +85,12 @@ export function startTimerExpiryJob(app: FastifyInstance) {
             'Timer expired — notifications sent',
           )
         }
+
+        // Prune seen: remove sessions no longer in the query result (they've been completed)
+        const currentIds = new Set(result.rows.map((r) => r.session_id))
+        for (const id of seen) {
+          if (!currentIds.has(id)) seen.delete(id)
+        }
       } catch (e) {
         app.log.error(e, 'Timer expiry job error')
       }

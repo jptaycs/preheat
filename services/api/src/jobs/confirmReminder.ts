@@ -53,8 +53,11 @@ export function startConfirmReminderJob(app: FastifyInstance) {
         }
       }
 
-      // Clean up notified set for old requests (older than 2 hours)
-      if (notified.size > 1000) notified.clear()
+      // Prune notified: remove IDs no longer in the active confirmation window
+      const currentIds = new Set(openRequests.rows.map((r) => r.id))
+      for (const id of notified) {
+        if (!currentIds.has(id)) notified.delete(id)
+      }
     } catch (err) {
       app.log.error(err, 'Confirm reminder job failed')
     }

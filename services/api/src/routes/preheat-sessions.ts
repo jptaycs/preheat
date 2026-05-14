@@ -240,44 +240,40 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
     durationMinutes: z.number().int().min(MIN_DURATION_MIN).max(MAX_DURATION_MIN),
   })
 
-  app.patch(
-    '/:id/duration',
-    { preHandler: [authenticate, requireRole('mechanic')] },
-    async (req, reply) => {
-      const { id } = req.params as { id: string }
-      const parsed = updateDurationSchema.safeParse(req.body)
-      if (!parsed.success) {
-        return reply.status(400).send({
-          statusCode: 400,
-          error: 'Bad Request',
-          message: parsed.error.issues,
-        })
-      }
+  app.patch('/:id/duration', { preHandler: [mechanic] }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const parsed = updateDurationSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: parsed.error.issues,
+      })
+    }
 
-      const result = await db.query(
-        `UPDATE preheat_sessions
+    const result = await db.query(
+      `UPDATE preheat_sessions
          SET duration_minutes = $1, updated_at = NOW()
          WHERE id = $2 AND completed_at IS NULL
          RETURNING *`,
-        [parsed.data.durationMinutes, id],
-      )
+      [parsed.data.durationMinutes, id],
+    )
 
-      if (result.rows.length === 0) {
-        return reply.status(404).send({
-          statusCode: 404,
-          error: 'Not Found',
-          message: 'Session not found or already completed',
-        })
-      }
-
-      broadcast(app, 'timer.updated', {
-        sessionId: id,
-        durationMinutes: parsed.data.durationMinutes,
+    if (result.rows.length === 0) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Session not found or already completed',
       })
+    }
 
-      return { success: true, durationMinutes: parsed.data.durationMinutes }
-    },
-  )
+    broadcast(app, 'timer.updated', {
+      sessionId: id,
+      durationMinutes: parsed.data.durationMinutes,
+    })
+
+    return { success: true, durationMinutes: parsed.data.durationMinutes }
+  })
 
   // GET /preheat-sessions/:id — session detail with readings (mechanic only)
   app.get<{ Params: { id: string } }>('/:id', { preHandler: [mechanic] }, async (req, reply) => {
@@ -328,6 +324,23 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
 
   // GET /preheat-sessions/by-request/:requestId — pilot or mechanic view (auth only)
   app.get<{ Params: { requestId: string } }>('/by-request/:requestId', async (req, reply) => {
+    // Pilots may only view sessions for their own requests
+    if (req.userRole === 'pilot') {
+      const ownerCheck = await db.query(
+        `SELECT id FROM preheat_requests WHERE id = $1 AND pilot_id = $2`,
+        [req.params.requestId, req.userId],
+      )
+      if (ownerCheck.rows.length === 0) {
+        return reply
+          .status(404)
+          .send({
+            statusCode: 404,
+            error: 'Not Found',
+            message: 'No session found for this request',
+          })
+      }
+    }
+
     const session = await db.query<{
       id: string
       request_id: string
