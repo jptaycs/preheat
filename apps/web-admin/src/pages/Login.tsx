@@ -13,6 +13,19 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const quickLogin = async (devEmail: string, devPassword: string) => {
+    setError(null)
+    setIsSubmitting(true)
+    try {
+      await login(devEmail, devPassword)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // Already logged in → redirect
   if (isAuthenticated) {
     navigate('/', { replace: true })
@@ -74,9 +87,64 @@ export default function Login() {
             AeroFluxPro
           </div>
           <div style={{ color: theme.colors.t2, fontSize: theme.fontSizes.sm, marginTop: 4 }}>
-            Dispatcher Panel
+            Mechanic Panel
           </div>
         </div>
+
+        {/* Dev shortcuts */}
+        {(import.meta.env as { DEV?: boolean }).DEV && (
+          <div
+            style={{
+              marginBottom: theme.spacing.lg,
+              padding: theme.spacing.md,
+              background: `${theme.colors.orange}14`,
+              border: `1px solid ${theme.colors.orange}44`,
+              borderRadius: theme.radius.md,
+            }}
+          >
+            <div
+              style={{
+                fontSize: theme.fontSizes.xs,
+                fontWeight: 700,
+                color: theme.colors.orange,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: theme.spacing.sm,
+              }}
+            >
+              Dev Shortcuts
+            </div>
+            <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+              {[
+                {
+                  label: 'Mechanic',
+                  email: 'dev-mechanic@preheat.local',
+                  password: 'devmechanic123',
+                },
+                { label: 'Pilot', email: 'dev-pilot@preheat.local', password: 'devpilot123' },
+              ].map(({ label, email, password }) => (
+                <button
+                  key={label}
+                  disabled={isSubmitting}
+                  onClick={() => void quickLogin(email, password)}
+                  style={{
+                    padding: '6px 16px',
+                    background: theme.colors.s2,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.radius.sm,
+                    color: theme.colors.text,
+                    fontSize: theme.fontSizes.sm,
+                    fontWeight: 600,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.5 : 1,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Card */}
         <div
@@ -123,7 +191,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={inputStyle}
-                placeholder="dispatcher@example.com"
+                placeholder="mechanic@example.com"
                 autoComplete="email"
                 required
               />

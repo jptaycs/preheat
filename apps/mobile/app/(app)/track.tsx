@@ -222,7 +222,7 @@ export default function TrackScreen() {
       />
     )
   }
-  return <PilotTrack />
+  return <PilotTrack requestId={params.requestId} />
 }
 
 // ── Mechanic view ─────────────────────────────────────────────────────────────
@@ -283,6 +283,15 @@ function MechanicTrack({
       setDuration(session.durationMinutes)
     }
   }, [session?.durationMinutes])
+
+  // Polling fallback — keeps UI in sync even if WebSocket events are missed
+  useEffect(() => {
+    if (session?.completedAt) return
+    const interval = setInterval(() => {
+      void fetchSession()
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [fetchSession, session?.completedAt])
 
   useWebSocket({
     'temp.updated': () => {
@@ -519,7 +528,7 @@ function MechanicTrack({
 
 // ── Pilot view ────────────────────────────────────────────────────────────────
 
-function PilotTrack() {
+function PilotTrack({ requestId }: { requestId?: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -528,6 +537,7 @@ function PilotTrack() {
   const [sessionComplete, setSessionComplete] = useState(false)
   const [timerExpired, setTimerExpired] = useState(false)
   const isMounted = useRef(true)
+  const lastActiveIdRef = useRef<string | null>(requestId ?? null)
 
   useEffect(() => {
     return () => {
@@ -538,33 +548,59 @@ function PilotTrack() {
   const fetchSession = useCallback(async () => {
     try {
       setError(null)
-      const requests = await preheatRequestsApi.list()
-      const active = requests.find((r) => r.status === 'active' || r.status === 'confirmed')
-      if (!active) {
-        if (isMounted.current) {
-          setActiveRequest(null)
-          setSession(null)
-          setLoading(false)
+
+      // If we know the requestId directly, skip the list call and poll the session straight
+      if (lastActiveIdRef.current) {
+        const knownId = lastActiveIdRef.current
+        const req = await preheatRequestsApi.get(knownId)
+        if (isMounted.current) setActiveRequest(req)
+        try {
+          const sess = await sessionsApi.getByRequest(knownId)
+          if (isMounted.current) setSession(sess)
+        } catch {
+          if (isMounted.current) setSession(null)
         }
         return
       }
-      setActiveRequest(active)
+
+      // Fallback: discover active request from list (e.g. navigated from home)
+      const requests = await preheatRequestsApi.list()
+      const target = requests.find((r) => r.status === 'active' || r.status === 'confirmed')
+      if (!target) {
+        if (isMounted.current) {
+          setActiveRequest(null)
+          setSession(null)
+        }
+        return
+      }
+
+      lastActiveIdRef.current = target.id
+      if (isMounted.current) setActiveRequest(target)
       try {
-        const sess = await sessionsApi.getByRequest(active.id)
+        const sess = await sessionsApi.getByRequest(target.id)
         if (isMounted.current) setSession(sess)
       } catch {
         if (isMounted.current) setSession(null)
       }
     } catch (e) {
-      if (isMounted.current) setError(e instanceof ApiError ? e.message : 'Failed to load session')
+      if (isMounted.current) setError(e instanceof ApiError ? e.message : 'Failed to load data')
     } finally {
       if (isMounted.current) setLoading(false)
     }
-  }, [])
+  }, []) // intentionally empty — lastActiveIdRef is a ref, not state
 
   useEffect(() => {
     void fetchSession()
   }, [fetchSession])
+
+  // Polling fallback — keeps UI in sync even if WebSocket events are missed
+  useEffect(() => {
+    if (sessionComplete || session?.completedAt) return
+    const interval = setInterval(() => {
+      void fetchSession()
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [fetchSession, sessionComplete, session?.completedAt])
 
   useWebSocket({
     'temp.updated': () => {
@@ -650,33 +686,33 @@ function PilotTrack() {
             </View>
           )}
 
-          <HeatGauge tempC={session?.currentTempCelsius ?? null} session={session} />
+          {session ? (
+            <>
+              <HeatGauge tempC={session.currentTempCelsius} session={session} />
 
-          {/* Info card */}
-          {session && (
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <View>
-                  <Text style={styles.infoCardSectionLabel}>ESTIMATED COMPLETION</Text>
-                  <Text style={styles.infoCardValue}>In progress</Text>
-                  <Text style={styles.infoCardSub}>
-                    {session.readings.length} reading{session.readings.length !== 1 ? 's' : ''}{' '}
-                    logged
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.infoCardSmallLabel}>Queue Position</Text>
-                  <Text style={[styles.infoCardSmallValue, { color: colors.blue }]}>
-                    #{activeRequest.queuePosition}
-                  </Text>
+              {/* Info card */}
+              <View style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <View>
+                    <Text style={styles.infoCardSectionLabel}>ESTIMATED COMPLETION</Text>
+                    <Text style={styles.infoCardValue}>In progress</Text>
+                    <Text style={styles.infoCardSub}>
+                      {session.readings.length} reading{session.readings.length !== 1 ? 's' : ''}{' '}
+                      logged
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.infoCardSmallLabel}>Queue Position</Text>
+                    <Text style={[styles.infoCardSmallValue, { color: colors.blue }]}>
+                      #{activeRequest.queuePosition}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
 
-          {session && <SessionTimeline session={session} />}
-
-          {!session && (
+              <SessionTimeline session={session} />
+            </>
+          ) : (
             <View style={styles.waitingCard}>
               <Clock size={32} color={colors.t2} />
               <Text style={styles.waitingTitle}>Waiting for mechanic</Text>
