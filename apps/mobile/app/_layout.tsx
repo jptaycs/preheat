@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native'
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
@@ -7,6 +8,16 @@ import { BadgeProvider } from '../src/context/BadgeContext'
 import { usePushNotifications } from '../src/hooks/usePushNotifications'
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus'
 import { OfflineBanner } from '../src/components/OfflineBanner'
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const SENTRY_DSN: string | undefined = process.env.EXPO_PUBLIC_SENTRY_DSN
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: __DEV__ ? 'development' : 'production',
+    tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+  })
+}
 
 function Guard() {
   const { isAuthenticated, isLoading } = useAuth()

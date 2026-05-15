@@ -37,7 +37,7 @@ describe('auto-cancel job: startup and idle behavior', () => {
 
   it('queries the database on initial run', async () => {
     const { db } = await import('../db/client.js')
-    const mockDb = db as { query: ReturnType<typeof vi.fn> }
+    const mockDb = db as unknown as { query: ReturnType<typeof vi.fn> }
 
     const { startAutoCancelJob } = await import('../jobs/autoCancel.js')
     const app = makeMockApp()
@@ -54,7 +54,7 @@ describe('auto-cancel job: startup and idle behavior', () => {
 
   it('does not cancel anything when no expired requests are found', async () => {
     const { db } = await import('../db/client.js')
-    const mockDb = db as { query: ReturnType<typeof vi.fn> }
+    const mockDb = db as unknown as { query: ReturnType<typeof vi.fn> }
     mockDb.query.mockResolvedValue({ rows: [], rowCount: 0 })
 
     const { startAutoCancelJob } = await import('../jobs/autoCancel.js')
@@ -95,7 +95,7 @@ describe('confirm reminder job: startup and idle behavior', () => {
     mockPush.mockClear()
 
     const { db } = await import('../db/client.js')
-    const mockDb = db as { query: ReturnType<typeof vi.fn> }
+    const mockDb = db as unknown as { query: ReturnType<typeof vi.fn> }
     mockDb.query.mockResolvedValue({ rows: [], rowCount: 0 })
 
     const { startConfirmReminderJob } = await import('../jobs/confirmReminder.js')

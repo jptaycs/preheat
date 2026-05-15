@@ -14,6 +14,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~5.0.5",
     "@preheat/shared": "workspace:*",
+    "@sentry/react-native": "^8.11.1",
     "expo": "54.0.33",
     "expo-asset": "~12.0.12",
     "expo-av": "~16.0.8",

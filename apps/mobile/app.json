@@ -37,7 +37,19 @@
           "faceIDPermission": "Use Face ID to sign in to Preheat"
         }
       ],
-      "expo-asset"
-    ]
+      "expo-asset",
+      "@sentry/react-native/expo"
+    ],
+    "hooks": {
+      "postPublish": [
+        {
+          "file": "sentry-expo/upload-sourcemaps",
+          "config": {
+            "organization": "preheat",
+            "project": "preheat-mobile"
+          }
+        }
+      ]
+    }
   }
 }

@@ -25,7 +25,7 @@ A running log of all development sessions from start to finish. Each session has
 | 015 | Web Admin: Settings & User Management              | 6 — Dispatcher Panel | ✅ Completed  |
 | 016 | End-to-End Testing                                 | 7 — QA & Polish      | ✅ Completed  |
 | 017 | Accessibility, Performance & Edge Cases            | 7 — QA & Polish      | ✅ Completed  |
-| 018 | Beta Release                                       | 8 — Launch           | ⬜ Incomplete |
+| 018 | Beta Release                                       | 8 — Launch           | ✅ Completed  |
 | 019 | Public Launch & App Store Submission               | 8 — Launch           | ⬜ Incomplete |
 
 > Update this table as sessions progress. Statuses: ✅ Completed · 🔄 In Progress · ⬜ Incomplete

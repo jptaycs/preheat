@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import type { WebSocket } from '@fastify/websocket'
+import * as Sentry from '@sentry/node'
 
 export async function buildApp() {
   const app = Fastify({
@@ -64,6 +65,11 @@ export async function buildApp() {
 
   const { preferencesRoutes } = await import('./routes/preferences.js')
   await app.register(preferencesRoutes, { prefix: '/users/me/preferences' })
+
+  // ── Error monitoring ─────────────────────────────────────────────────────────
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupFastifyErrorHandler(app)
+  }
 
   // ── Background jobs ──────────────────────────────────────────────────────────
   const { startAutoCancelJob } = await import('./jobs/autoCancel.js')
