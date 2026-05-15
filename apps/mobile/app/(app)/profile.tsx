@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Switch,
+  Linking,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
@@ -384,6 +385,13 @@ export default function ProfileScreen() {
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => void Linking.openURL('https://preheat.app/privacy')}
+          accessibilityRole="link"
+          accessibilityLabel="View Privacy Policy"
+        >
+          <Text style={styles.privacyLink}>Privacy Policy</Text>
+        </TouchableOpacity>
         <Text style={styles.versionText}>Preheat Scheduler v1.0.0 · © 2026</Text>
       </ScrollView>
     </SafeAreaView>
@@ -589,11 +597,19 @@ const styles = StyleSheet.create({
   },
   signOutText: { color: colors.red, fontWeight: '700', fontSize: font.base },
 
-  // Version
+  // Privacy + version
+  privacyLink: {
+    fontSize: 12,
+    color: colors.t3,
+    textAlign: 'center',
+    marginTop: 16,
+    textDecorationLine: 'underline',
+  },
   versionText: {
     fontSize: 11,
     color: colors.t3,
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 6,
+    marginBottom: 4,
   },
 })

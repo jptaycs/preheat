@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { theme } from './theme'
 import Login from './pages/Login'
+import Privacy from './pages/Privacy'
 import Queue from './pages/Queue'
 import Track from './pages/Track'
 
@@ -127,6 +128,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/"
         element={
