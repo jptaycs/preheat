@@ -51,7 +51,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       })
     }
 
-    const preheatRequest = reqResult.rows[0]
+    const preheatRequest = reqResult.rows[0]!
 
     if (preheatRequest.status !== 'confirmed') {
       return reply.status(409).send({
@@ -87,10 +87,8 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
     )
 
     const row = session.rows[0]!
-    broadcast(app, 'session.started', { sessionId: row.id, requestId })
-    broadcast(app, 'queue.updated', { requestDate: preheatRequest.request_date })
 
-    // Push notification to pilot (if preheat progress notifications are enabled)
+    // Fetch pilot push info (needed for both broadcast metadata and push notification)
     const pilotPushResult = await db.query<{
       push_token: string | null
       notification_prefs: { preheatProgress?: boolean } | null
@@ -104,6 +102,15 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       [requestId],
     )
     const pilotPush = pilotPushResult.rows[0]
+
+    broadcast(app, 'session.started', {
+      sessionId: row.id,
+      requestId,
+      pilotId: preheatRequest.pilot_id,
+      tailNumber: pilotPush?.tail_number,
+    })
+    broadcast(app, 'queue.updated', { requestDate: preheatRequest.request_date })
+
     if (pilotPush?.push_token && pilotPush.notification_prefs?.preheatProgress !== false) {
       void sendPushNotification([
         {
@@ -148,7 +155,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
           message: 'Session not found',
         })
       }
-      if (sessionResult.rows[0].completed_at) {
+      if (sessionResult.rows[0]!.completed_at) {
         return reply.status(409).send({
           statusCode: 409,
           error: 'Conflict',
@@ -199,7 +206,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
           message: 'Session not found',
         })
       }
-      if (sessionResult.rows[0].completed_at) {
+      if (sessionResult.rows[0]!.completed_at) {
         return reply.status(409).send({
           statusCode: 409,
           error: 'Conflict',
@@ -207,7 +214,7 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
         })
       }
 
-      const { request_id } = sessionResult.rows[0] as {
+      const { request_id } = sessionResult.rows[0]! as {
         id: string
         request_id: string
         completed_at: string | null
@@ -228,14 +235,24 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
         request_date: string
         pilot_id: string
         engine_start_time: string
-      }>(`SELECT request_date, pilot_id, engine_start_time FROM preheat_requests WHERE id = $1`, [
-        request_id,
-      ])
+        tail_number: string
+      }>(
+        `SELECT r.request_date, r.pilot_id, r.engine_start_time, a.tail_number
+         FROM preheat_requests r
+         JOIN aircraft a ON a.id = r.aircraft_id
+         WHERE r.id = $1`,
+        [request_id],
+      )
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const preheatReq = reqResult.rows[0]
 
       if (preheatReq) {
-        broadcast(app, 'session.completed', { sessionId: req.params.id, requestId: request_id })
+        broadcast(app, 'session.completed', {
+          sessionId: req.params.id,
+          requestId: request_id,
+          pilotId: preheatReq.pilot_id,
+          tailNumber: preheatReq.tail_number,
+        })
         broadcast(app, 'queue.updated', { requestDate: preheatReq.request_date })
 
         // Push notification to pilot (if preheat progress notifications are enabled)

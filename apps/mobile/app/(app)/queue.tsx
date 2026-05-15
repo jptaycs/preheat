@@ -153,6 +153,9 @@ export default function QueueScreen() {
         onPress={() => handleCardPress(item)}
         activeOpacity={tappable ? 0.75 : 1}
         disabled={!tappable}
+        accessibilityRole={tappable ? 'button' : 'none'}
+        accessibilityLabel={`${item.tailNumber}, queue position ${item.queuePosition ?? index + 1}, status ${sc.label}${isMine ? ', your aircraft' : ''}`}
+        accessibilityHint={tappable ? 'Tap to view details' : undefined}
       >
         {/* Position panel */}
         <View
@@ -217,6 +220,12 @@ export default function QueueScreen() {
               style={styles.inlineConfirmBtn}
               onPress={() => void handleConfirm(item)}
               disabled={confirming === item.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Confirm preheat for ${item.tailNumber}`}
+              accessibilityState={{
+                disabled: confirming === item.id,
+                busy: confirming === item.id,
+              }}
             >
               {confirming === item.id ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -246,6 +255,9 @@ export default function QueueScreen() {
             key={f}
             style={[styles.chip, filter === f && styles.chipActive]}
             onPress={() => setFilter(f)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by ${f === 'all' ? 'all statuses' : f === 'waiting' ? 'upcoming' : f}`}
+            accessibilityState={{ selected: filter === f }}
           >
             <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>
               {f === 'all'
@@ -285,6 +297,9 @@ export default function QueueScreen() {
             key={d}
             style={[styles.dateChip, selectedDate === d && styles.dateChipActive]}
             onPress={() => setSelectedDate(d)}
+            accessibilityRole="button"
+            accessibilityLabel={`Show queue for ${d === 'all' ? 'all dates' : d === dates[1] ? 'today' : fmtDate(d)}`}
+            accessibilityState={{ selected: selectedDate === d }}
           >
             <Text style={[styles.dateChipText, selectedDate === d && styles.dateChipTextActive]}>
               {d === 'all' ? 'All' : d === dates[1] ? 'Today' : fmtDate(d)}

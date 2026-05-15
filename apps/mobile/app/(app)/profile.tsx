@@ -271,6 +271,8 @@ export default function ProfileScreen() {
               setShowAddForm((v) => !v)
               setAddError(null)
             }}
+            accessibilityRole="button"
+            accessibilityLabel={showAddForm ? 'Cancel adding aircraft' : 'Add new aircraft'}
           >
             <Text style={styles.addBtnText}>{showAddForm ? 'Cancel' : '+ Add'}</Text>
           </TouchableOpacity>
@@ -301,6 +303,9 @@ export default function ProfileScreen() {
               style={[styles.submitBtn, adding && styles.submitBtnDisabled]}
               onPress={() => void handleAddAircraft()}
               disabled={adding}
+              accessibilityRole="button"
+              accessibilityLabel="Save new aircraft"
+              accessibilityState={{ disabled: adding, busy: adding }}
             >
               {adding ? (
                 <ActivityIndicator color="#fff" />
@@ -340,6 +345,12 @@ export default function ProfileScreen() {
                 style={styles.deleteBtn}
                 onPress={() => void handleDelete(item)}
                 disabled={deletingId === item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${item.tailNumber}`}
+                accessibilityState={{
+                  disabled: deletingId === item.id,
+                  busy: deletingId === item.id,
+                }}
               >
                 {deletingId === item.id ? (
                   <ActivityIndicator size="small" color={colors.red} />
@@ -362,6 +373,9 @@ export default function ProfileScreen() {
           style={styles.signOutBtn}
           onPress={() => void handleSignOut()}
           disabled={signingOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out of your account"
+          accessibilityState={{ disabled: signingOut, busy: signingOut }}
         >
           {signingOut ? (
             <ActivityIndicator color={colors.red} />

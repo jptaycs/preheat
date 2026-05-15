@@ -3,7 +3,7 @@ import { storage } from './storage'
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
 const BASE_URL: string = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000'
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
 
 interface RequestOptions {
   method?: HttpMethod

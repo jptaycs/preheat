@@ -30,3 +30,6 @@ export const MIN_DURATION_MIN = 5
 
 /** Maximum allowed duration in minutes */
 export const MAX_DURATION_MIN = 60
+
+/** Maximum number of preheat requests allowed per day */
+export const MAX_QUEUE_PER_DAY = 20

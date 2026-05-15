@@ -62,6 +62,8 @@ export function startAutoCancelJob(app: FastifyInstance) {
 
         affectedDates.add(req.request_date)
 
+        broadcast(app, 'slot.cancelled', { pilotId: req.pilot_id, requestId: req.id })
+
         // Send push notification to the pilot (if they haven't disabled schedule alerts)
         const pilotResult = await db.query<{
           push_token: string | null

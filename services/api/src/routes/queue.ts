@@ -111,7 +111,7 @@ export async function queueRoutes(app: FastifyInstance) {
       })
     }
 
-    const row = result.rows[0]
+    const row = result.rows[0]!
 
     if (row.status === 'cancelled') {
       return reply.status(409).send({

@@ -364,14 +364,22 @@ function MechanicTrack({
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to queue"
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <ArrowLeft size={18} color={colors.t2} />
             <Text style={styles.backBtn}>Queue</Text>
           </View>
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Preheat Tracking</Text>
-        <TouchableOpacity onPress={() => void fetchSession()}>
+        <TouchableOpacity
+          onPress={() => void fetchSession()}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh session data"
+        >
           <RefreshCw size={18} color={colors.blue} />
         </TouchableOpacity>
       </View>
@@ -473,6 +481,9 @@ function MechanicTrack({
                   style={[styles.logBtn, logging && styles.btnDisabled]}
                   onPress={() => void handleLogTemp()}
                   disabled={logging}
+                  accessibilityRole="button"
+                  accessibilityLabel="Log temperature reading"
+                  accessibilityState={{ disabled: logging, busy: logging }}
                 >
                   {logging ? (
                     <ActivityIndicator size="small" color="#fff" />
@@ -487,6 +498,9 @@ function MechanicTrack({
               style={[styles.completeBtn, completing && styles.btnDisabled]}
               onPress={() => void handleComplete()}
               disabled={completing}
+              accessibilityRole="button"
+              accessibilityLabel="Mark preheat session as complete"
+              accessibilityState={{ disabled: completing, busy: completing }}
             >
               {completing ? (
                 <ActivityIndicator color="#fff" />
@@ -513,6 +527,9 @@ function MechanicTrack({
             style={[styles.startBtn, starting && styles.btnDisabled]}
             onPress={() => void handleStart()}
             disabled={starting}
+            accessibilityRole="button"
+            accessibilityLabel={`Start preheat for ${tailNumber}`}
+            accessibilityState={{ disabled: starting, busy: starting }}
           >
             {starting ? (
               <ActivityIndicator color="#fff" />

@@ -264,6 +264,9 @@ export default function RequestScreen() {
                 ]}
                 onPress={() => setSelectedAircraftId(a.id)}
                 activeOpacity={0.8}
+                accessibilityRole="radio"
+                accessibilityLabel={`${a.tailNumber}, ${a.type}`}
+                accessibilityState={{ selected: selectedAircraftId === a.id }}
               >
                 <View style={styles.aircraftCardInner}>
                   <Text style={styles.aircraftTail}>{a.tailNumber}</Text>
@@ -385,6 +388,9 @@ export default function RequestScreen() {
           }}
           disabled={isLoading || aircraft.length === 0}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Submit preheat request"
+          accessibilityState={{ disabled: isLoading || aircraft.length === 0, busy: isLoading }}
         >
           {isLoading ? (
             <ActivityIndicator color="#fff" />
@@ -393,7 +399,12 @@ export default function RequestScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cancelLink} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.cancelLink}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel and go back"
+        >
           <Text style={styles.cancelLinkText}>Cancel</Text>
         </TouchableOpacity>
       </ScrollView>

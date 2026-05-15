@@ -166,7 +166,11 @@ export default function ConfirmScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => void fetchPending()}>
+          <TouchableOpacity
+            onPress={() => void fetchPending()}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading confirmations"
+          >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -272,6 +276,9 @@ export default function ConfirmScreen() {
           style={[styles.confirmBtn, isConfirming && styles.confirmBtnDisabled]}
           onPress={() => void handleConfirm(req)}
           disabled={isConfirming}
+          accessibilityRole="button"
+          accessibilityLabel={`Confirm attendance for ${req.tailNumber ?? 'aircraft'}`}
+          accessibilityState={{ disabled: isConfirming, busy: isConfirming }}
         >
           {isConfirming ? (
             <ActivityIndicator color="#fff" />
@@ -289,6 +296,9 @@ export default function ConfirmScreen() {
           style={[styles.cancelBtn, cancelling && { opacity: 0.5 }]}
           onPress={() => void handleCancel(req)}
           disabled={cancelling}
+          accessibilityRole="button"
+          accessibilityLabel={`Cancel preheat request for ${req.tailNumber ?? 'aircraft'}`}
+          accessibilityState={{ disabled: cancelling, busy: cancelling }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <XCircle size={16} color={colors.red} />

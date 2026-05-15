@@ -126,7 +126,7 @@ export async function adminRoutes(app: FastifyInstance) {
       })
     }
 
-    const u = result.rows[0]
+    const u = result.rows[0]!
     return reply.send({
       id: u.id,
       name: u.name,

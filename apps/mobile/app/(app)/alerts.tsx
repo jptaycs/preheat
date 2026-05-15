@@ -9,6 +9,7 @@ import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-r
 import type { LucideIcon } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 import { useBadge } from '../../src/context/BadgeContext'
+import { useAuth } from '../../src/context/AuthContext'
 
 type AlertType =
   | 'confirm_reminder'
@@ -69,6 +70,7 @@ const INITIAL_ALERTS: AlertItem[] = [
 
 export default function AlertsScreen() {
   const router = useRouter()
+  const { user } = useAuth()
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS)
   const { incAlertBadge, clearAlertBadge } = useBadge()
 
@@ -103,7 +105,8 @@ export default function AlertsScreen() {
       addAlert('info', 'Queue Updated', 'The queue has been updated.')
     },
     'session.started': (data: unknown) => {
-      const d = data as { tailNumber?: string } | null
+      const d = data as { tailNumber?: string; pilotId?: string } | null
+      if (d?.pilotId && d.pilotId !== user?.id) return
       addAlert(
         'session_started',
         'Preheat Started',
@@ -113,7 +116,8 @@ export default function AlertsScreen() {
       )
     },
     'session.completed': (data: unknown) => {
-      const d = data as { tailNumber?: string } | null
+      const d = data as { tailNumber?: string; pilotId?: string } | null
+      if (d?.pilotId && d.pilotId !== user?.id) return
       addAlert(
         'session_completed',
         'Preheat Complete',
@@ -121,23 +125,24 @@ export default function AlertsScreen() {
       )
     },
     'confirm.reminder': (data: unknown) => {
-      const d = data as { deadline?: string } | null
+      const d = data as { deadline?: string; pilotId?: string } | null
+      if (d?.pilotId && d.pilotId !== user?.id) return
+      const deadlineStr = d?.deadline
+        ? new Date(d.deadline).toISOString().slice(11, 16) + ' UTC'
+        : undefined
       addAlert(
         'confirm_reminder',
         'Confirmation Required',
-        d?.deadline
-          ? `Confirm before ${d.deadline} or preheat will be canceled.`
+        deadlineStr
+          ? `Confirm before ${deadlineStr} or preheat will be canceled.`
           : 'Your confirmation window is open.',
         true,
       )
     },
     'slot.cancelled': (data: unknown) => {
-      const d = data as { reason?: string } | null
-      addAlert(
-        'slot_cancelled',
-        'Slot Cancelled',
-        d?.reason ?? 'Your preheat slot has been cancelled.',
-      )
+      const d = data as { pilotId?: string } | null
+      if (d?.pilotId && d.pilotId !== user?.id) return
+      addAlert('slot_cancelled', 'Slot Cancelled', 'Your preheat slot has been cancelled.')
     },
   })
 
@@ -169,7 +174,11 @@ export default function AlertsScreen() {
       <View style={styles.headerBar}>
         <Text style={styles.screenTitle}>Notifications</Text>
         {hasUnread && (
-          <TouchableOpacity onPress={markAllRead}>
+          <TouchableOpacity
+            onPress={markAllRead}
+            accessibilityRole="button"
+            accessibilityLabel="Mark all notifications as read"
+          >
             <Text style={styles.markReadBtn}>Mark all read</Text>
           </TouchableOpacity>
         )}
@@ -193,6 +202,8 @@ export default function AlertsScreen() {
                 key={alertItem.id}
                 style={styles.urgentCard}
                 onPress={() => router.push('/(app)/confirm')}
+                accessibilityRole="button"
+                accessibilityLabel={`Urgent: ${alertItem.title}. Tap to respond.`}
               >
                 <View
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}

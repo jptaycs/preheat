@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar'
 import { AuthProvider, useAuth } from '../src/context/AuthContext'
 import { BadgeProvider } from '../src/context/BadgeContext'
 import { usePushNotifications } from '../src/hooks/usePushNotifications'
+import { useNetworkStatus } from '../src/hooks/useNetworkStatus'
+import { OfflineBanner } from '../src/components/OfflineBanner'
 
 function Guard() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -42,12 +44,22 @@ function Guard() {
   return <Slot />
 }
 
+function AppShell() {
+  const { isOnline } = useNetworkStatus()
+  return (
+    <View style={{ flex: 1 }}>
+      <Guard />
+      <OfflineBanner visible={!isOnline} />
+    </View>
+  )
+}
+
 export default function RootLayout() {
   return (
     <AuthProvider>
       <BadgeProvider>
         <StatusBar style="light" />
-        <Guard />
+        <AppShell />
       </BadgeProvider>
     </AuthProvider>
   )

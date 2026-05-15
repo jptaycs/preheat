@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { db } from '../db/client.js'
+import { db, withTransaction } from '../db/client.js'
 import { authenticate } from '../middleware/authenticate.js'
 import { broadcast } from '../lib/broadcast.js'
 
@@ -12,6 +12,7 @@ import {
   BOOKING_OPENS_HOUR,
   MIN_DURATION_MIN,
   MAX_DURATION_MIN,
+  MAX_QUEUE_PER_DAY,
 } from '../config/queue.js'
 
 function addMinutes(date: Date, minutes: number): Date {
@@ -99,55 +100,14 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
         }
       }
 
-      // ── Rule: no duplicate active request for same aircraft + date ───────────
+      // ── Queue assignment in a transaction to prevent race conditions ─────────
+      // FOR UPDATE on the last-queue-position row serializes concurrent inserts.
       const requestDate = engineStartTime.toISOString().slice(0, 10)
-      const duplicate = await db.query(
-        `SELECT id FROM preheat_requests
-       WHERE aircraft_id = $1
-         AND request_date = $2
-         AND status NOT IN ('cancelled')`,
-        [aircraftId, requestDate],
-      )
-      if (duplicate.rows.length > 0) {
-        return reply.status(409).send({
-          statusCode: 409,
-          error: 'Conflict',
-          message: 'An active preheat request already exists for this aircraft on that date',
-        })
-      }
-
-      // ── Rule #2: 15-min spacing — new engineStartTime must be ≥ last + 15 min ─
-      const lastRequest = await db.query<{ engine_start_time: string; queue_position: number }>(
-        `SELECT engine_start_time, queue_position
-       FROM preheat_requests
-       WHERE request_date = $1
-         AND status NOT IN ('cancelled')
-       ORDER BY queue_position DESC
-       LIMIT 1`,
-        [requestDate],
-      )
-
-      let queuePosition = 1
-      if (lastRequest.rows.length > 0) {
-        const lastEngineStart = new Date(lastRequest.rows[0].engine_start_time)
-        const minimumStart = addMinutes(lastEngineStart, SLOT_SPACING_MIN)
-        if (engineStartTime < minimumStart) {
-          return reply.status(400).send({
-            statusCode: 400,
-            error: 'Bad Request',
-            message: `Engine start time must be at least ${SLOT_SPACING_MIN} minutes after the last queued request (${lastEngineStart.toISOString()}). Earliest available: ${minimumStart.toISOString()}`,
-          })
-        }
-        queuePosition = lastRequest.rows[0].queue_position + 1
-      }
-
-      // ── Derived times ────────────────────────────────────────────────────────
       const assignedTime = subMinutes(engineStartTime, PREHEAT_DURATION_MIN)
       const confirmOpensAt = subMinutes(engineStartTime, CONFIRM_OPENS_MIN)
       const confirmDeadline = subMinutes(engineStartTime, CONFIRM_DEADLINE_MIN)
 
-      // ── Insert ───────────────────────────────────────────────────────────────
-      const result = await db.query<{
+      type InsertedRow = {
         id: string
         queue_position: number
         request_date: string
@@ -158,32 +118,108 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
         status: string
         notes: string | null
         created_at: string
-      }>(
-        `INSERT INTO preheat_requests
-         (pilot_id, aircraft_id, queue_position, request_date,
-          engine_start_time, assigned_time, confirm_opens_at, confirm_deadline, notes,
-          preferred_duration_minutes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING
-         id, queue_position, request_date,
-         engine_start_time, assigned_time, confirm_opens_at, confirm_deadline,
-         status, notes, created_at`,
-        [
-          req.userId,
-          aircraftId,
-          queuePosition,
-          requestDate,
-          engineStartTime.toISOString(),
-          assignedTime.toISOString(),
-          confirmOpensAt.toISOString(),
-          confirmDeadline.toISOString(),
-          notes ?? null,
-          preferredDurationMinutes ?? null,
-        ],
-      )
+      }
+      type TxOutcome =
+        | { ok: true; row: InsertedRow }
+        | { ok: false; status: number; body: Record<string, unknown> }
 
+      const txOutcome = await withTransaction<TxOutcome>(async (client) => {
+        // Duplicate check inside transaction
+        const duplicate = await client.query(
+          `SELECT id FROM preheat_requests
+           WHERE aircraft_id = $1 AND request_date = $2 AND status NOT IN ('cancelled')`,
+          [aircraftId, requestDate],
+        )
+        if (duplicate.rows.length > 0) {
+          return {
+            ok: false,
+            status: 409,
+            body: {
+              statusCode: 409,
+              error: 'Conflict',
+              message: 'An active preheat request already exists for this aircraft on that date',
+            },
+          }
+        }
+
+        // Lock the last row in the day's queue to serialize concurrent inserts
+        const lastRequest = await client.query<{
+          engine_start_time: string
+          queue_position: number
+        }>(
+          `SELECT engine_start_time, queue_position
+           FROM preheat_requests
+           WHERE request_date = $1 AND status NOT IN ('cancelled')
+           ORDER BY queue_position DESC
+           LIMIT 1
+           FOR UPDATE`,
+          [requestDate],
+        )
+
+        let queuePosition = 1
+        if (lastRequest.rows.length > 0) {
+          const lastRow = lastRequest.rows[0]!
+          const lastEngineStart = new Date(lastRow.engine_start_time)
+          const minimumStart = addMinutes(lastEngineStart, SLOT_SPACING_MIN)
+          if (engineStartTime < minimumStart) {
+            return {
+              ok: false,
+              status: 400,
+              body: {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: `Engine start time must be at least ${SLOT_SPACING_MIN} minutes after the last queued request (${lastEngineStart.toISOString()}). Earliest available: ${minimumStart.toISOString()}`,
+              },
+            }
+          }
+          queuePosition = lastRow.queue_position + 1
+        }
+
+        if (queuePosition > MAX_QUEUE_PER_DAY) {
+          return {
+            ok: false,
+            status: 409,
+            body: {
+              statusCode: 409,
+              error: 'Conflict',
+              message: `Queue is full for ${requestDate}. Maximum ${MAX_QUEUE_PER_DAY} preheat requests per day.`,
+            },
+          }
+        }
+
+        const insertResult = await client.query<InsertedRow>(
+          `INSERT INTO preheat_requests
+           (pilot_id, aircraft_id, queue_position, request_date,
+            engine_start_time, assigned_time, confirm_opens_at, confirm_deadline, notes,
+            preferred_duration_minutes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING
+             id, queue_position, request_date,
+             engine_start_time, assigned_time, confirm_opens_at, confirm_deadline,
+             status, notes, created_at`,
+          [
+            req.userId,
+            aircraftId,
+            queuePosition,
+            requestDate,
+            engineStartTime.toISOString(),
+            assignedTime.toISOString(),
+            confirmOpensAt.toISOString(),
+            confirmDeadline.toISOString(),
+            notes ?? null,
+            preferredDurationMinutes ?? null,
+          ],
+        )
+        return { ok: true, row: insertResult.rows[0]! }
+      })
+
+      if (!txOutcome.ok) {
+        return reply.status(txOutcome.status).send(txOutcome.body)
+      }
+
+      const insertedRow = txOutcome.row
       const response = {
-        ...result.rows[0],
+        ...insertedRow,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         tailNumber: (aircraft.rows[0] as unknown as { tail_number: string }).tail_number,
       }
@@ -374,7 +410,7 @@ export async function preheatRequestRoutes(app: FastifyInstance) {
       })
     }
 
-    const request = result.rows[0]
+    const request = result.rows[0]!
     const now = new Date()
 
     if (request.status === 'confirmed') {

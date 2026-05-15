@@ -42,6 +42,6 @@ export async function preferencesRoutes(app: FastifyInstance) {
       })
     }
 
-    return reply.send({ notificationPrefs: result.rows[0].notification_prefs })
+    return reply.send({ notificationPrefs: result.rows[0]!.notification_prefs })
   })
 }
