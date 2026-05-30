@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Preheat",
+    "name": "AeroFluxPro",
     "slug": "preheat",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.preheat.app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to sign in to Preheat"
+        "NSFaceIDUsageDescription": "Use Face ID to sign in to AeroFluxPro"
       }
     },
     "android": {
@@ -34,7 +34,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Use Face ID to sign in to Preheat"
+          "faceIDPermission": "Use Face ID to sign in to AeroFluxPro"
         }
       ],
       "expo-asset",

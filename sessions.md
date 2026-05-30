@@ -6,29 +6,33 @@ A running log of all development sessions from start to finish. Each session has
 
 ## Session Status
 
-| #   | Session                                            | Phase                | Status       |
-| --- | -------------------------------------------------- | -------------------- | ------------ |
-| 001 | Concept & Interactive Prototype                    | 0 — Foundation       | ✅ Completed |
-| 002 | Planning & Documentation                           | 0 — Foundation       | ✅ Completed |
-| 003 | Repo Structure & Tooling Setup                     | 0 — Foundation       | ✅ Completed |
-| 004 | Backend: Auth API                                  | 1 — Auth             | ✅ Completed |
-| 005 | Mobile: Login & Registration Screens               | 1 — Auth             | ✅ Completed |
-| 006 | Backend: Aircraft & Preheat Request API            | 2 — Request & Queue  | ✅ Completed |
-| 007 | Mobile: Request Preheat Screen                     | 2 — Request & Queue  | ✅ Completed |
-| 008 | Mobile: Queue Screen (Real-Time)                   | 2 — Request & Queue  | ✅ Completed |
-| 009 | Backend: Confirmation & Auto-Cancel Logic          | 3 — Confirmation     | ✅ Completed |
-| 010 | Mobile: Confirm Screen & Push Notifications        | 3 — Confirmation     | ✅ Completed |
-| 011 | Backend: Preheat Session & Temperature Data        | 4 — Live Tracking    | ✅ Completed |
-| 012 | Mobile: Track Screen (Live)                        | 4 — Live Tracking    | ✅ Completed |
-| 013 | Mobile: Profile, Aircraft Management & Preferences | 5 — Profile          | ✅ Completed |
-| 014 | Web Admin: Dispatcher Dashboard                    | 6 — Dispatcher Panel | ✅ Completed |
-| 015 | Web Admin: Settings & User Management              | 6 — Dispatcher Panel | ✅ Completed |
-| 016 | End-to-End Testing                                 | 7 — QA & Polish      | ✅ Completed |
-| 017 | Accessibility, Performance & Edge Cases            | 7 — QA & Polish      | ✅ Completed |
-| 018 | Beta Release                                       | 8 — Launch           | ✅ Completed |
-| 019 | Public Launch & App Store Submission               | 8 — Launch           | ✅ Completed |
+| #   | Session                                            | Phase                | Status        |
+| --- | -------------------------------------------------- | -------------------- | ------------- |
+| 001 | Concept & Interactive Prototype                    | 0 — Foundation       | ✅ Completed  |
+| 002 | Planning & Documentation                           | 0 — Foundation       | ✅ Completed  |
+| 003 | Repo Structure & Tooling Setup                     | 0 — Foundation       | ✅ Completed  |
+| 004 | Backend: Auth API                                  | 1 — Auth             | ✅ Completed  |
+| 005 | Mobile: Login & Registration Screens               | 1 — Auth             | ✅ Completed  |
+| 006 | Backend: Aircraft & Preheat Request API            | 2 — Request & Queue  | ✅ Completed  |
+| 007 | Mobile: Request Preheat Screen                     | 2 — Request & Queue  | ✅ Completed  |
+| 008 | Mobile: Queue Screen (Real-Time)                   | 2 — Request & Queue  | ✅ Completed  |
+| 009 | Backend: Confirmation & Auto-Cancel Logic          | 3 — Confirmation     | ✅ Completed  |
+| 010 | Mobile: Confirm Screen & Push Notifications        | 3 — Confirmation     | ✅ Completed  |
+| 011 | Backend: Preheat Session & Temperature Data        | 4 — Live Tracking    | ✅ Completed  |
+| 012 | Mobile: Track Screen (Live)                        | 4 — Live Tracking    | ✅ Completed  |
+| 013 | Mobile: Profile, Aircraft Management & Preferences | 5 — Profile          | ✅ Completed  |
+| 014 | Web Admin: Dispatcher Dashboard                    | 6 — Dispatcher Panel | ✅ Completed  |
+| 015 | Web Admin: Settings & User Management              | 6 — Dispatcher Panel | ✅ Completed  |
+| 016 | End-to-End Testing                                 | 7 — QA & Polish      | ⚠️ Partial    |
+| 017 | Accessibility, Performance & Edge Cases            | 7 — QA & Polish      | ✅ Completed  |
+| 018 | Beta Release                                       | 8 — Launch           | ⚠️ Partial    |
+| 019 | Public Launch & App Store Submission               | 8 — Launch           | ⬜ Incomplete |
 
-> Update this table as sessions progress. Statuses: ✅ Completed · 🔄 In Progress · ⬜ Incomplete
+> Update this table as sessions progress. Statuses: ✅ Completed · 🔄 In Progress · ⚠️ Partial · ⬜ Incomplete
+
+**016 Partial:** API integration + unit tests landed (`886f911`); mobile (Detox/Maestro) and web-admin (Playwright) E2E suites not set up.
+**018 Partial:** Sentry on API+mobile, EAS build config, Fly.io deploy config, Privacy Policy page all committed (`32efd1f`, `012dea8`). Not done: actual production deploy, domain/TLS, uptime monitoring, TestFlight/Play distribution, seeded airport, feedback intake doc.
+**019:** Only Privacy Policy from the task list is done. Store assets, submissions, support email, post-launch monitoring plan all outstanding.
 
 ---
 
@@ -163,7 +167,7 @@ Before writing production code, align on scope, data model, tech stack, and proj
 
 **Date:** TBD
 **Branch:** `main`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Set up the production repository structure — monorepo, package manager, linting, formatting, CI skeleton — so that all future sessions start from a clean, consistent foundation.
@@ -206,7 +210,7 @@ Set up the production repository structure — monorepo, package manager, lintin
 
 **Date:** TBD
 **Branch:** `feat/auth-api`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the authentication layer for the backend API. Pilots and dispatchers log in with email + password. JWTs are issued for session management. This must be solid before any other API work begins.
@@ -252,7 +256,7 @@ Build the authentication layer for the backend API. Pilots and dispatchers log i
 
 **Date:** TBD
 **Branch:** `feat/auth-mobile`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Wire the Login and Registration screens in the Expo mobile app to the real auth API. Replace prototype mock interactions with actual API calls, token storage, and navigation guards.
@@ -301,7 +305,7 @@ Wire the Login and Registration screens in the Expo mobile app to the real auth 
 
 **Date:** TBD
 **Branch:** `feat/request-api`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the core data layer — aircraft registry and preheat request management. This is the foundation of the queue system.
@@ -345,7 +349,7 @@ Build the core data layer — aircraft registry and preheat request management. 
 
 **Date:** TBD
 **Branch:** `feat/request-screen`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the functional Request Preheat screen — the primary pilot action. Connects to the aircraft API and preheat request API. Shows real data instead of prototype mock data.
@@ -384,7 +388,7 @@ Build the functional Request Preheat screen — the primary pilot action. Connec
 
 **Date:** TBD
 **Branch:** `feat/queue-screen`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the live Queue screen. The pilot sees their position among all requests for the day. This screen must update in real-time when queue positions change (cancellations, completions).
@@ -431,7 +435,7 @@ Build the live Queue screen. The pilot sees their position among all requests fo
 
 **Date:** TBD
 **Branch:** `feat/confirmation-api`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the time-sensitive confirmation system. When a pilot's slot is approaching, the system prompts them to confirm. If they don't respond in time, the slot is automatically canceled.
@@ -471,7 +475,7 @@ Build the time-sensitive confirmation system. When a pilot's slot is approaching
 
 **Date:** TBD
 **Branch:** `feat/confirm-mobile`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the functional Confirm screen and wire up push notifications end-to-end. A tap on the push notification should deep-link directly to the Confirm screen for the relevant request.
@@ -519,7 +523,7 @@ Build the functional Confirm screen and wire up push notifications end-to-end. A
 
 **Date:** TBD
 **Branch:** `feat/tracking-api`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the live preheat session management and temperature tracking. In v1.0, temperature data will be manually entered by the dispatcher (hardware sensor integration is a future feature).
@@ -563,7 +567,7 @@ Build the live preheat session management and temperature tracking. In v1.0, tem
 
 **Date:** TBD
 **Branch:** `feat/track-screen`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the live Track screen. The pilot watches their aircraft's preheat progress in real time — temperature rising, gauge animating, ETA counting down. This is the most visually rich screen in the app.
@@ -609,7 +613,7 @@ Build the live Track screen. The pilot watches their aircraft's preheat progress
 
 **Date:** TBD
 **Branch:** `feat/profile`
-**Status:** Planned
+**Status:** Completed
 
 **Description:**
 Build the functional Profile screen. Pilots manage their account, register and remove aircraft, and configure notification preferences that are persisted via the API.
@@ -655,7 +659,7 @@ Build the functional Profile screen. Pilots manage their account, register and r
 
 **Date:** TBD
 **Branch:** `feat/dispatcher-web`
-**Status:** Planned
+**Status:** Completed (refactored into "mechanic panel" — see `dde77fb`)
 
 **Description:**
 Build the web-based dispatcher panel used by FBO staff. This is a separate React web app. Dispatchers can see the full queue, start/update/complete preheat sessions, and override queue order when needed.
@@ -696,7 +700,7 @@ Build the web-based dispatcher panel used by FBO staff. This is a separate React
 
 **Date:** TBD
 **Branch:** `feat/dispatcher-settings`
-**Status:** Planned
+**Status:** Completed (`Settings.tsx`, `Users.tsx` in web-admin)
 
 **Description:**
 Add configuration and basic user management to the dispatcher panel. Admins can manage pilot accounts, configure preheat slot durations, and set operating hours for the queue.
@@ -739,7 +743,7 @@ Add configuration and basic user management to the dispatcher panel. Admins can 
 
 **Date:** TBD
 **Branch:** `feat/e2e-tests`
-**Status:** Planned
+**Status:** ⚠️ Partial — API integration + unit tests added (`886f911`); mobile (Detox/Maestro) and web-admin (Playwright) E2E not set up
 
 **Description:**
 Write end-to-end tests that cover the complete happy path and the most critical error paths. Tests run in CI on every PR.
@@ -773,7 +777,7 @@ Write end-to-end tests that cover the complete happy path and the most critical 
 
 **Date:** TBD
 **Branch:** `feat/polish`
-**Status:** Planned
+**Status:** Completed (`662b74c`)
 
 **Description:**
 Final quality pass before beta launch. Fix accessibility gaps, reduce unnecessary re-renders, handle offline and slow-network states, and harden edge cases.
@@ -819,7 +823,7 @@ Final quality pass before beta launch. Fix accessibility gaps, reduce unnecessar
 
 **Date:** TBD
 **Branch:** `main`
-**Status:** Planned
+**Status:** ⚠️ Partial — Sentry (API + mobile), EAS build config, Fly.io deploy config, Privacy Policy committed (`32efd1f`, `012dea8`). Outstanding: production Postgres, live API deploy + domain/TLS, uptime monitoring, TestFlight/Play Internal distribution, seeded airport accounts, feedback intake doc.
 
 **Description:**
 Deploy backend to production, distribute the mobile app to a small group of beta testers (1–2 airports, 10–20 pilots), and monitor for real-world issues.
@@ -859,7 +863,7 @@ Deploy backend to production, distribute the mobile app to a small group of beta
 
 **Date:** TBD
 **Branch:** `main`
-**Status:** Planned
+**Status:** ⬜ Incomplete — only Privacy Policy from this task list is in place (`012dea8`). Store assets, submissions, support email, and post-launch monitoring plan all outstanding.
 
 **Description:**
 Address beta feedback, submit to the App Store and Google Play, and prepare for public launch.

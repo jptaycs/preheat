@@ -43,3 +43,7 @@ coverage/
 *.mobileprovision
 *.orig.*
 web-build/
+
+# Store submission credentials
+google-play-key.json
+AuthKey_*.p8
