@@ -309,3 +309,20 @@ export const sessionsApi = {
     )
   },
 }
+
+// ── Weather endpoint ───────────────────────────────────────────────────────────
+
+export interface WeatherSnapshot {
+  icao: string
+  tempC: number | null
+  observedAt: string | null
+  rawMetar: string | null
+  suggestedDurationMin: number
+}
+
+export const weatherApi = {
+  get(icao?: string) {
+    const qs = icao ? `?icao=${encodeURIComponent(icao)}` : ''
+    return request<WeatherSnapshot>(`/weather${qs}`)
+  },
+}

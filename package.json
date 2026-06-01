@@ -11,6 +11,7 @@
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "test:android": "bash scripts/test-android.sh",
     "prepare": "husky"
   },
   "devDependencies": {

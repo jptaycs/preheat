@@ -13,9 +13,9 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useState, useEffect, useCallback } from 'react'
-import { aircraftApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
-import type { AircraftItem } from '../../src/lib/api'
-import { ChevronDown, X, Check, CheckCircle } from 'lucide-react-native'
+import { aircraftApi, preheatRequestsApi, weatherApi, ApiError } from '../../src/lib/api'
+import type { AircraftItem, WeatherSnapshot } from '../../src/lib/api'
+import { ChevronDown, X, Check, CheckCircle, Thermometer } from 'lucide-react-native'
 import { colors, font, radius } from '../../src/theme'
 import { DurationPicker } from '../../src/components/DurationPicker'
 
@@ -131,6 +131,8 @@ export default function RequestScreen() {
 
   const [notes, setNotes] = useState('')
   const [preferredDuration, setPreferredDuration] = useState(20)
+  const [userTouchedDuration, setUserTouchedDuration] = useState(false)
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingAircraft, setIsLoadingAircraft] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -162,6 +164,27 @@ export default function RequestScreen() {
         setIsLoadingAircraft(false)
       }
     })()
+
+    void (async () => {
+      try {
+        const w = await weatherApi.get()
+        setWeather(w)
+      } catch {
+        // Soft-fail: weather is decorative. Pilot can pick duration manually.
+      }
+    })()
+  }, [])
+
+  // Auto-fill duration from METAR once weather arrives, unless the pilot already changed it.
+  useEffect(() => {
+    if (weather && !userTouchedDuration) {
+      setPreferredDuration(weather.suggestedDurationMin)
+    }
+  }, [weather, userTouchedDuration])
+
+  const handleDurationChange = useCallback((mins: number) => {
+    setUserTouchedDuration(true)
+    setPreferredDuration(mins)
   }, [])
 
   async function handleSubmit() {
@@ -362,10 +385,19 @@ export default function RequestScreen() {
 
         {/* Preferred duration */}
         <View style={styles.section}>
+          {weather && weather.tempC !== null && (
+            <View style={styles.weatherChip}>
+              <Thermometer size={14} color={colors.orange} />
+              <Text style={styles.weatherChipText}>
+                {weather.icao} OAT {weather.tempC.toFixed(0)}°C
+                {!userTouchedDuration && ` → suggesting ${weather.suggestedDurationMin} min`}
+              </Text>
+            </View>
+          )}
           <DurationPicker
             label="PREFERRED DURATION"
             value={preferredDuration}
-            onChange={setPreferredDuration}
+            onChange={handleDurationChange}
           />
         </View>
 
@@ -437,6 +469,21 @@ const styles = StyleSheet.create({
 
   section: { marginBottom: 20 },
   label: { fontSize: 11, fontWeight: '700', color: colors.t2, letterSpacing: 0.8, marginBottom: 8 },
+
+  weatherChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.s2,
+    borderWidth: 1,
+    borderColor: colors.orangeD,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  weatherChipText: { fontSize: font.sm, color: colors.text, fontWeight: '600' },
   subLabel: { fontSize: 10, color: colors.t3, marginBottom: 4, fontWeight: '600' },
 
   aircraftCard: {

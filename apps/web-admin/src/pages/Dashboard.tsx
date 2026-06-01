@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import type { QueueEntry, QueueResponse } from '../lib/api'
-import { queueApi, sessionsApi, preheatRequestsApi } from '../lib/api'
+import type { QueueEntry, QueueResponse, WeatherSnapshot } from '../lib/api'
+import { queueApi, sessionsApi, preheatRequestsApi, weatherApi } from '../lib/api'
 import { onWsEvent } from '../lib/ws'
 import { theme } from '../theme'
 
@@ -188,6 +188,28 @@ export default function Dashboard() {
   const [data, setData] = useState<QueueResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchWeather = () => {
+      void weatherApi
+        .get()
+        .then((w) => {
+          if (!cancelled) setWeather(w)
+        })
+        .catch(() => {
+          // Soft-fail: weather banner is decorative.
+        })
+    }
+    fetchWeather()
+    // Refresh every 10 min (matches the API's cache window).
+    const id = setInterval(fetchWeather, 10 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -248,19 +270,42 @@ export default function Dashboard() {
         <h1 style={{ fontSize: theme.fontSizes.xl, fontWeight: 700, color: theme.colors.text }}>
           Dashboard
         </h1>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{
-            padding: `${theme.spacing.xs} ${theme.spacing.md}`,
-            background: theme.colors.s1,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radius.md,
-            color: theme.colors.text,
-            fontSize: theme.fontSizes.sm,
-          }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
+          {weather && weather.tempC !== null && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+                background: `${theme.colors.orange}18`,
+                border: `1px solid ${theme.colors.orange}66`,
+                borderRadius: theme.radius.md,
+                color: theme.colors.text,
+                fontSize: theme.fontSizes.sm,
+                fontWeight: 600,
+              }}
+              title={weather.rawMetar ?? undefined}
+            >
+              <span style={{ color: theme.colors.orange }}>🌡</span>
+              {weather.icao} · OAT {weather.tempC.toFixed(0)}°C · suggest{' '}
+              {weather.suggestedDurationMin} min
+            </div>
+          )}
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            style={{
+              padding: `${theme.spacing.xs} ${theme.spacing.md}`,
+              background: theme.colors.s1,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radius.md,
+              color: theme.colors.text,
+              fontSize: theme.fontSizes.sm,
+            }}
+          />
+        </div>
       </div>
 
       {/* Stats bar */}

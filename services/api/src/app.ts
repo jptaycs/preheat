@@ -66,6 +66,9 @@ export async function buildApp() {
   const { preferencesRoutes } = await import('./routes/preferences.js')
   await app.register(preferencesRoutes, { prefix: '/users/me/preferences' })
 
+  const { weatherRoutes } = await import('./routes/weather.js')
+  await app.register(weatherRoutes, { prefix: '/weather' })
+
   // ── Error monitoring ─────────────────────────────────────────────────────────
   if (process.env.SENTRY_DSN) {
     Sentry.setupFastifyErrorHandler(app)
