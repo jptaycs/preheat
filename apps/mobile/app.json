@@ -16,7 +16,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.preheat.app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to sign in to AeroFluxPro"
+        "NSFaceIDUsageDescription": "Use Face ID to sign in to AeroFluxPro",
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -38,8 +39,14 @@
         }
       ],
       "expo-asset",
+      "expo-notifications",
       "@sentry/react-native/expo"
     ],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    },
     "hooks": {
       "postPublish": [
         {
