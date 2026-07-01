@@ -10,14 +10,18 @@ import {
   ScrollView,
 } from 'react-native'
 import { Link } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
-import { colors, radius, font } from '../../src/theme'
+import { radius, font } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 import { Flame, Plane, Fingerprint, Wrench, Zap } from 'lucide-react-native'
 
 export default function LoginScreen() {
   const { login, devLogin } = useAuth()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -225,122 +229,129 @@ export default function LoginScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 60 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 60 },
 
-  logoWrap: { alignItems: 'center', marginBottom: 16 },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#1E3D7A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoIcon: { fontSize: 28 },
-  title: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 4 },
-  subtitle: { fontSize: font.sm, color: colors.t2 },
+    logoWrap: { alignItems: 'center', marginBottom: 16 },
+    logoBox: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: '#1E3D7A',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    logoIcon: { fontSize: 28 },
+    title: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 4 },
+    subtitle: { fontSize: font.sm, color: colors.t2 },
 
-  pillRow: { alignItems: 'center', marginBottom: 24 },
-  pill: {
-    backgroundColor: colors.blueD,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-  },
-  pillText: { fontSize: 11, fontWeight: '700', color: colors.blue, letterSpacing: 0.5 },
+    pillRow: { alignItems: 'center', marginBottom: 24 },
+    pill: {
+      backgroundColor: colors.blueD,
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+      borderRadius: radius.full,
+    },
+    pillText: { fontSize: 11, fontWeight: '700', color: colors.blue, letterSpacing: 0.5 },
 
-  errorBanner: {
-    backgroundColor: colors.redD,
-    borderWidth: 1,
-    borderColor: colors.red,
-    borderRadius: radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorBannerText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
+    errorBanner: {
+      backgroundColor: colors.redD,
+      borderWidth: 1,
+      borderColor: colors.red,
+      borderRadius: radius.sm,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorBannerText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
 
-  fieldWrap: { marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '700', color: colors.t2, marginBottom: 6, letterSpacing: 0.8 },
-  input: {
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    color: colors.text,
-    fontSize: font.md,
-  },
-  inputError: { borderColor: colors.red },
-  fieldError: { fontSize: 12, color: colors.red, marginTop: 4 },
+    fieldWrap: { marginBottom: 14 },
+    label: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      marginBottom: 6,
+      letterSpacing: 0.8,
+    },
+    input: {
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 15,
+      paddingVertical: 14,
+      color: colors.text,
+      fontSize: font.md,
+    },
+    inputError: { borderColor: colors.red },
+    fieldError: { fontSize: 12, color: colors.red, marginTop: 4 },
 
-  passwordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
-  passwordInput: { flex: 1, color: colors.text, fontSize: font.md, paddingVertical: 14 },
-  showHide: { fontSize: 12, color: colors.blue, fontWeight: '600', paddingLeft: 8 },
+    passwordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
+    passwordInput: { flex: 1, color: colors.text, fontSize: font.md, paddingVertical: 14 },
+    showHide: { fontSize: 12, color: colors.blue, fontWeight: '600', paddingLeft: 8 },
 
-  forgotRow: { alignItems: 'flex-end', marginBottom: 20 },
-  forgotText: { fontSize: font.sm, color: colors.blue, fontWeight: '600' },
+    forgotRow: { alignItems: 'flex-end', marginBottom: 20 },
+    forgotText: { fontSize: font.sm, color: colors.blue, fontWeight: '600' },
 
-  btnPrimary: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  btnPrimaryText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
-  btnDisabled: { opacity: 0.6 },
+    btnPrimary: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 18,
+      alignItems: 'center',
+      shadowColor: colors.blue,
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    btnPrimaryText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
+    btnDisabled: { opacity: 0.6 },
 
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { fontSize: 12, color: colors.t3, marginHorizontal: 12 },
+    dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+    dividerText: { fontSize: 12, color: colors.t3, marginHorizontal: 12 },
 
-  btnGhost: {
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  btnGhostText: { color: colors.t2, fontSize: font.base, fontWeight: '600' },
+    btnGhost: {
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    btnGhostText: { color: colors.t2, fontSize: font.base, fontWeight: '600' },
 
-  biometricWrap: { alignItems: 'center', marginTop: 28 },
-  biometricIcon: { fontSize: 38 },
-  biometricLabel: { fontSize: 11, color: colors.t3, marginTop: 6 },
+    biometricWrap: { alignItems: 'center', marginTop: 28 },
+    biometricIcon: { fontSize: 38 },
+    biometricLabel: { fontSize: 11, color: colors.t3, marginTop: 6 },
 
-  devPanel: {
-    marginTop: 36,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 20,
-  },
-  devTitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.t3,
-    letterSpacing: 1.2,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  devRow: { flexDirection: 'row', gap: 10 },
-  devBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  devBtnPilot: { backgroundColor: colors.blueD, borderColor: colors.blue },
-  devBtnMechanic: { backgroundColor: colors.orangeD, borderColor: colors.orange },
-  devBtnText: { color: colors.text, fontSize: font.sm, fontWeight: '700' },
-})
+    devPanel: {
+      marginTop: 36,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 20,
+    },
+    devTitle: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.t3,
+      letterSpacing: 1.2,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    devRow: { flexDirection: 'row', gap: 10 },
+    devBtn: {
+      flex: 1,
+      paddingVertical: 13,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      borderWidth: 1,
+    },
+    devBtnPilot: { backgroundColor: colors.blueD, borderColor: colors.blue },
+    devBtnMechanic: { backgroundColor: colors.orangeD, borderColor: colors.orange },
+    devBtnText: { color: colors.text, fontSize: font.sm, fontWeight: '700' },
+  })

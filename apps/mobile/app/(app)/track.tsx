@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -20,7 +20,9 @@ import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { ArrowLeft, RefreshCw, CheckCircle, Plane, Wrench, Clock, Check } from 'lucide-react-native'
 import { DurationPicker } from '../../src/components/DurationPicker'
 import { CountdownTimer } from '../../src/components/CountdownTimer'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -35,6 +37,8 @@ function fmtTimeShort(iso: string): string {
 // ── Shared components ─────────────────────────────────────────────────────────
 
 function HeatGauge({ tempC, session }: { tempC: number | null; session?: SessionDetail | null }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const pulseAnim = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
@@ -90,6 +94,8 @@ function HeatGauge({ tempC, session }: { tempC: number | null; session?: Session
 }
 
 function SessionTimeline({ session }: { session: SessionDetail }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const readings = [...session.readings].reverse()
   return (
     <View style={styles.timelineSection}>
@@ -239,6 +245,8 @@ function MechanicTrack({
   pilotName: string
 }) {
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<SessionDetail | null>(null)
@@ -547,6 +555,8 @@ function MechanicTrack({
 
 function PilotTrack({ requestId }: { requestId?: string }) {
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeRequest, setActiveRequest] = useState<PreheatRequest | null>(null)
@@ -747,332 +757,333 @@ function PilotTrack({ requestId }: { requestId?: string }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  backBtn: { fontSize: 20, color: colors.t2 },
-  screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  refreshBtn: { fontSize: 20, color: colors.blue },
-  headerSub: {
-    fontSize: 13,
-    color: colors.t2,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: colors.t2, fontSize: font.base },
-  errorBox: {
-    margin: 20,
-    backgroundColor: colors.redD,
-    borderRadius: radius.md,
-    padding: 16,
-    alignItems: 'center',
-  },
-  errorText: { color: colors.red, fontSize: font.base, marginBottom: 6 },
-  retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.sm },
-  content: { padding: 20, paddingBottom: 40 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    headerBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 4,
+    },
+    backBtn: { fontSize: 20, color: colors.t2 },
+    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+    refreshBtn: { fontSize: 20, color: colors.blue },
+    headerSub: {
+      fontSize: 13,
+      color: colors.t2,
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+    loadingText: { color: colors.t2, fontSize: font.base },
+    errorBox: {
+      margin: 20,
+      backgroundColor: colors.redD,
+      borderRadius: radius.md,
+      padding: 16,
+      alignItems: 'center',
+    },
+    errorText: { color: colors.red, fontSize: font.base, marginBottom: 6 },
+    retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.sm },
+    content: { padding: 20, paddingBottom: 40 },
 
-  // Aircraft info (mechanic)
-  aircraftInfoCard: {
-    marginHorizontal: 20,
-    marginBottom: 4,
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-  },
-  aircraftTail: { fontSize: font.xxl, fontWeight: '800', color: colors.text },
-  aircraftTypeText: { fontSize: font.base, color: colors.t2, marginTop: 2 },
-  pilotNameText: { fontSize: font.sm, color: colors.t3, marginTop: 4 },
+    // Aircraft info (mechanic)
+    aircraftInfoCard: {
+      marginHorizontal: 20,
+      marginBottom: 4,
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+    },
+    aircraftTail: { fontSize: font.xxl, fontWeight: '800', color: colors.text },
+    aircraftTypeText: { fontSize: font.base, color: colors.t2, marginTop: 2 },
+    pilotNameText: { fontSize: font.sm, color: colors.t3, marginTop: 4 },
 
-  // Empty / start
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIcon: { fontSize: 56, marginBottom: 16 },
-  emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptyBody: {
-    fontSize: font.base,
-    color: colors.t2,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  startBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    minWidth: 200,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  startBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
+    // Empty / start
+    emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+    emptyIcon: { fontSize: 56, marginBottom: 16 },
+    emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
+    emptyBody: {
+      fontSize: font.base,
+      color: colors.t2,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    startBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      alignItems: 'center',
+      minWidth: 200,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    startBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
 
-  // Gauge card
-  gaugeCard: {
-    backgroundColor: '#1A1E2E',
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.orange,
-    padding: 22,
-    marginBottom: 14,
-    alignItems: 'center',
-    shadowColor: colors.orange,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  gaugePillRow: { marginBottom: 16 },
-  gaugePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.orangeD,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  gaugePillDot: { width: 6, height: 6, borderRadius: 3 },
-  gaugePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.orange,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  gaugeRing: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 5,
-    borderColor: colors.orange + '44',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gaugeInner: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    borderWidth: 3,
-    borderColor: colors.orange + '66',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.s2,
-  },
-  gaugePercent: { fontSize: 30, fontWeight: '900', color: colors.orange },
-  gaugeLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
-  tempGrid: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
-  tempGridItem: { flex: 1, alignItems: 'center' },
-  tempGridLabel: {
-    fontSize: 10,
-    color: colors.t3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '700',
-  },
-  tempGridValue: { fontSize: 15, fontWeight: '800', color: colors.text, marginTop: 2 },
+    // Gauge card
+    gaugeCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.orange,
+      padding: 22,
+      marginBottom: 14,
+      alignItems: 'center',
+      shadowColor: colors.orange,
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    gaugePillRow: { marginBottom: 16 },
+    gaugePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: colors.orangeD,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 99,
+    },
+    gaugePillDot: { width: 6, height: 6, borderRadius: 3 },
+    gaugePillText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.orange,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    gaugeRing: {
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      borderWidth: 5,
+      borderColor: colors.orange + '44',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    gaugeInner: {
+      width: 116,
+      height: 116,
+      borderRadius: 58,
+      borderWidth: 3,
+      borderColor: colors.orange + '66',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.s2,
+    },
+    gaugePercent: { fontSize: 30, fontWeight: '900', color: colors.orange },
+    gaugeLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
+    tempGrid: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
+    tempGridItem: { flex: 1, alignItems: 'center' },
+    tempGridLabel: {
+      fontSize: 10,
+      color: colors.t3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      fontWeight: '700',
+    },
+    tempGridValue: { fontSize: 15, fontWeight: '800', color: colors.text, marginTop: 2 },
 
-  // Temperature input (mechanic)
-  tempInputCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 12,
-  },
-  tempInputLabel: {
-    fontSize: 11,
-    color: colors.t2,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    marginBottom: 10,
-  },
-  tempInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tempInput: {
-    flex: 1,
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: font.md,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  tempUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
-  logBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.sm,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    alignItems: 'center',
-    minWidth: 64,
-  },
-  logBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
+    // Temperature input (mechanic)
+    tempInputCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 12,
+    },
+    tempInputLabel: {
+      fontSize: 11,
+      color: colors.t2,
+      fontWeight: '700',
+      letterSpacing: 0.6,
+      marginBottom: 10,
+    },
+    tempInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    tempInput: {
+      flex: 1,
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: font.md,
+      color: colors.text,
+      fontWeight: '700',
+    },
+    tempUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
+    logBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.sm,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      alignItems: 'center',
+      minWidth: 64,
+    },
+    logBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
 
-  // Complete button
-  completeBtn: {
-    backgroundColor: colors.green,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  completeBtnText: { color: '#fff', fontWeight: '800', fontSize: font.base },
-  btnDisabled: { opacity: 0.5 },
+    // Complete button
+    completeBtn: {
+      backgroundColor: colors.green,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    completeBtnText: { color: '#fff', fontWeight: '800', fontSize: font.base },
+    btnDisabled: { opacity: 0.5 },
 
-  // Complete card
-  completeCard: {
-    backgroundColor: colors.greenD,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.green,
-    padding: 28,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  completeIcon: { fontSize: 40, marginBottom: 12 },
-  completeTitle: { fontSize: font.xl, fontWeight: '800', color: colors.green, marginBottom: 8 },
-  completeBody: { fontSize: font.base, color: colors.text, textAlign: 'center' },
+    // Complete card
+    completeCard: {
+      backgroundColor: colors.greenD,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.green,
+      padding: 28,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    completeIcon: { fontSize: 40, marginBottom: 12 },
+    completeTitle: { fontSize: font.xl, fontWeight: '800', color: colors.green, marginBottom: 8 },
+    completeBody: { fontSize: font.base, color: colors.text, textAlign: 'center' },
 
-  // Info card (pilot)
-  infoCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 20,
-  },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  infoCardSectionLabel: {
-    fontSize: 10,
-    color: colors.t3,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    marginBottom: 3,
-  },
-  infoCardValue: { fontSize: 22, fontWeight: '800', color: colors.green },
-  infoCardSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
-  infoCardSmallLabel: { fontSize: 11, color: colors.t3 },
-  infoCardSmallValue: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+    // Info card (pilot)
+    infoCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 20,
+    },
+    infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    infoCardSectionLabel: {
+      fontSize: 10,
+      color: colors.t3,
+      fontWeight: '700',
+      letterSpacing: 0.6,
+      marginBottom: 3,
+    },
+    infoCardValue: { fontSize: 22, fontWeight: '800', color: colors.green },
+    infoCardSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    infoCardSmallLabel: { fontSize: 11, color: colors.t3 },
+    infoCardSmallValue: { fontSize: 14, fontWeight: '700', marginTop: 2 },
 
-  // Waiting card (pilot)
-  waitingCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderColor: colors.border,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-  },
-  waitingIcon: { fontSize: 32, marginBottom: 10 },
-  waitingTitle: { fontSize: font.md, fontWeight: '700', color: colors.text, marginBottom: 6 },
-  waitingText: { color: colors.t2, fontSize: font.base, textAlign: 'center', lineHeight: 22 },
+    // Waiting card (pilot)
+    waitingCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderColor: colors.border,
+      borderWidth: 1,
+      padding: 24,
+      alignItems: 'center',
+    },
+    waitingIcon: { fontSize: 32, marginBottom: 10 },
+    waitingTitle: { fontSize: font.md, fontWeight: '700', color: colors.text, marginBottom: 6 },
+    waitingText: { color: colors.t2, fontSize: font.base, textAlign: 'center', lineHeight: 22 },
 
-  // Timeline
-  timelineSection: { marginTop: 4 },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.t3,
-    marginBottom: 16,
-  },
-  tlItem: { flexDirection: 'row', gap: 12 },
-  tlLeft: { alignItems: 'center', width: 32 },
-  tlDot: {
-    width: 13,
-    height: 13,
-    borderRadius: 7,
-    borderWidth: 2.5,
-    backgroundColor: colors.bg,
-    zIndex: 1,
-    marginTop: 2,
-  },
-  tlLine: { width: 2, flex: 1, minHeight: 16, marginVertical: 3 },
-  tlBody: { flex: 1, paddingBottom: 18 },
-  tlTime: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.t2,
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  tlCard: {
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 11,
-  },
-  tlCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tlCardTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
-  tlCardSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
-  tlBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  tlBadgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+    // Timeline
+    timelineSection: { marginTop: 4 },
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.t3,
+      marginBottom: 16,
+    },
+    tlItem: { flexDirection: 'row', gap: 12 },
+    tlLeft: { alignItems: 'center', width: 32 },
+    tlDot: {
+      width: 13,
+      height: 13,
+      borderRadius: 7,
+      borderWidth: 2.5,
+      backgroundColor: colors.bg,
+      zIndex: 1,
+      marginTop: 2,
+    },
+    tlLine: { width: 2, flex: 1, minHeight: 16, marginVertical: 3 },
+    tlBody: { flex: 1, paddingBottom: 18 },
+    tlTime: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      marginBottom: 4,
+      letterSpacing: 0.3,
+    },
+    tlCard: {
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 11,
+    },
+    tlCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    tlCardTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
+    tlCardSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    tlBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+    },
+    tlBadgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
 
-  // Expired banner
-  expiredBanner: {
-    backgroundColor: colors.redD,
-    borderWidth: 1,
-    borderColor: colors.red,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 14,
-    alignItems: 'center',
-  },
-  expiredText: { color: colors.red, fontWeight: '700', fontSize: font.base },
+    // Expired banner
+    expiredBanner: {
+      backgroundColor: colors.redD,
+      borderWidth: 1,
+      borderColor: colors.red,
+      borderRadius: radius.md,
+      padding: 14,
+      marginBottom: 14,
+      alignItems: 'center',
+    },
+    expiredText: { color: colors.red, fontWeight: '700', fontSize: font.base },
 
-  // Edit duration card (mechanic)
-  editDurationCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.blue,
-    padding: 16,
-    marginBottom: 14,
-  },
-  editDurationTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.t2,
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  editDurationCancel: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  editDurationCancelText: { color: colors.t2, fontWeight: '600' },
-  editDurationSave: {
-    flex: 1,
-    backgroundColor: colors.blue,
-    borderRadius: radius.sm,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  editDurationSaveText: { color: '#fff', fontWeight: '700' },
-})
+    // Edit duration card (mechanic)
+    editDurationCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.blue,
+      padding: 16,
+      marginBottom: 14,
+    },
+    editDurationTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      letterSpacing: 0.8,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+    },
+    editDurationCancel: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    editDurationCancelText: { color: colors.t2, fontWeight: '600' },
+    editDurationSave: {
+      flex: 1,
+      backgroundColor: colors.blue,
+      borderRadius: radius.sm,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    editDurationSaveText: { color: '#fff', fontWeight: '700' },
+  })

@@ -12,11 +12,13 @@ import {
   FlatList,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { aircraftApi, preheatRequestsApi, weatherApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem, WeatherSnapshot } from '../../src/lib/api'
 import { ChevronDown, X, Check, CheckCircle, Thermometer } from 'lucide-react-native'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 import { DurationPicker } from '../../src/components/DurationPicker'
 
 // ── Dropdown helpers ────────────────────────────────────────────────────────
@@ -63,6 +65,8 @@ interface DropdownProps {
 }
 
 function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [open, setOpen] = useState(false)
 
   return (
@@ -119,6 +123,8 @@ function Dropdown({ label, value, placeholder, options, onSelect }: DropdownProp
 
 export default function RequestScreen() {
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(null)
@@ -444,220 +450,227 @@ export default function RequestScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 24, paddingBottom: 48 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    content: { padding: 24, paddingBottom: 48 },
 
-  pageTitle: {
-    fontSize: font.xxl,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: 20,
-    marginBottom: 4,
-  },
-  pageSub: { fontSize: font.sm, color: colors.t2, marginBottom: 28 },
+    pageTitle: {
+      fontSize: font.xxl,
+      fontWeight: '800',
+      color: colors.text,
+      marginTop: 20,
+      marginBottom: 4,
+    },
+    pageSub: { fontSize: font.sm, color: colors.t2, marginBottom: 28 },
 
-  errorBox: {
-    backgroundColor: colors.redD,
-    borderWidth: 1,
-    borderColor: colors.red,
-    borderRadius: radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: colors.red, fontSize: font.sm },
+    errorBox: {
+      backgroundColor: colors.redD,
+      borderWidth: 1,
+      borderColor: colors.red,
+      borderRadius: radius.sm,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorText: { color: colors.red, fontSize: font.sm },
 
-  section: { marginBottom: 20 },
-  label: { fontSize: 11, fontWeight: '700', color: colors.t2, letterSpacing: 0.8, marginBottom: 8 },
+    section: { marginBottom: 20 },
+    label: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      letterSpacing: 0.8,
+      marginBottom: 8,
+    },
 
-  weatherChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.s2,
-    borderWidth: 1,
-    borderColor: colors.orangeD,
-    borderRadius: radius.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 10,
-  },
-  weatherChipText: { fontSize: font.sm, color: colors.text, fontWeight: '600' },
-  subLabel: { fontSize: 10, color: colors.t3, marginBottom: 4, fontWeight: '600' },
+    weatherChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      alignSelf: 'flex-start',
+      backgroundColor: colors.s2,
+      borderWidth: 1,
+      borderColor: colors.orangeD,
+      borderRadius: radius.sm,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      marginBottom: 10,
+    },
+    weatherChipText: { fontSize: font.sm, color: colors.text, fontWeight: '600' },
+    subLabel: { fontSize: 10, color: colors.t3, marginBottom: 4, fontWeight: '600' },
 
-  aircraftCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 16,
-    marginBottom: 8,
-  },
-  aircraftCardSelected: { borderColor: colors.blue, backgroundColor: colors.blueG },
-  aircraftCardInner: { flex: 1 },
-  aircraftTail: { fontSize: font.lg, fontWeight: '700', color: colors.text },
-  aircraftType: { fontSize: font.sm, color: colors.t2, marginTop: 2 },
-  selectedCheck: { fontSize: 20, color: colors.blue, fontWeight: '700' },
+    aircraftCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      padding: 16,
+      marginBottom: 8,
+    },
+    aircraftCardSelected: { borderColor: colors.blue, backgroundColor: colors.blueG },
+    aircraftCardInner: { flex: 1 },
+    aircraftTail: { fontSize: font.lg, fontWeight: '700', color: colors.text },
+    aircraftType: { fontSize: font.sm, color: colors.t2, marginTop: 2 },
+    selectedCheck: { fontSize: 20, color: colors.blue, fontWeight: '700' },
 
-  emptyBox: {
-    backgroundColor: colors.s2,
-    borderRadius: radius.md,
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyText: { fontSize: font.base, color: colors.t2, marginBottom: 8 },
-  emptyLink: { fontSize: font.base, color: colors.blue, fontWeight: '600' },
+    emptyBox: {
+      backgroundColor: colors.s2,
+      borderRadius: radius.md,
+      padding: 20,
+      alignItems: 'center',
+    },
+    emptyText: { fontSize: font.base, color: colors.t2, marginBottom: 8 },
+    emptyLink: { fontSize: font.base, color: colors.blue, fontWeight: '600' },
 
-  // Date row
-  dateRow: { flexDirection: 'row', gap: 8 },
-  dateColWide: { flex: 2 },
-  dateColNarrow: { flex: 1 },
+    // Date row
+    dateRow: { flexDirection: 'row', gap: 8 },
+    dateColWide: { flex: 2 },
+    dateColNarrow: { flex: 1 },
 
-  // Time row
-  timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
-  timeCol: { flex: 1 },
-  timeSep: {
-    fontSize: font.xl,
-    color: colors.t2,
-    fontWeight: '700',
-    paddingBottom: 10,
-    paddingHorizontal: 2,
-  },
+    // Time row
+    timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+    timeCol: { flex: 1 },
+    timeSep: {
+      fontSize: font.xl,
+      color: colors.t2,
+      fontWeight: '700',
+      paddingBottom: 10,
+      paddingHorizontal: 2,
+    },
 
-  // Dropdown button
-  dropBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 13,
-  },
-  dropValue: { fontSize: font.md, color: colors.text, flex: 1 },
-  dropPlaceholder: { fontSize: font.md, color: colors.t3, flex: 1 },
-  dropArrow: { fontSize: 12, color: colors.t2, marginLeft: 4 },
+    // Dropdown button
+    dropBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 12,
+      paddingVertical: 13,
+    },
+    dropValue: { fontSize: font.md, color: colors.text, flex: 1 },
+    dropPlaceholder: { fontSize: font.md, color: colors.t3, flex: 1 },
+    dropArrow: { fontSize: 12, color: colors.t2, marginLeft: 4 },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: colors.s1,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '60%',
-    borderTopWidth: 1,
-    borderColor: colors.border,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: { fontSize: font.md, fontWeight: '700', color: colors.text },
-  modalClose: { fontSize: 18, color: colors.t2, padding: 4 },
-  modalList: { paddingVertical: 4 },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border + '44',
-  },
-  modalItemSelected: { backgroundColor: colors.blueD },
-  modalItemText: { fontSize: font.base, color: colors.text },
-  modalItemTextSelected: { color: colors.blue, fontWeight: '700' },
-  modalCheck: { fontSize: 16, color: colors.blue },
+    // Modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'flex-end',
+    },
+    modalSheet: {
+      backgroundColor: colors.s1,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '60%',
+      borderTopWidth: 1,
+      borderColor: colors.border,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: { fontSize: font.md, fontWeight: '700', color: colors.text },
+    modalClose: { fontSize: 18, color: colors.t2, padding: 4 },
+    modalList: { paddingVertical: 4 },
+    modalItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border + '44',
+    },
+    modalItemSelected: { backgroundColor: colors.blueD },
+    modalItemText: { fontSize: font.base, color: colors.text },
+    modalItemTextSelected: { color: colors.blue, fontWeight: '700' },
+    modalCheck: { fontSize: 16, color: colors.blue },
 
-  input: {
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    color: colors.text,
-    fontSize: font.md,
-  },
-  textArea: { height: 80, textAlignVertical: 'top' },
-  hint: { fontSize: font.sm, color: colors.t3, marginTop: 6 },
+    input: {
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      color: colors.text,
+      fontSize: font.md,
+    },
+    textArea: { height: 80, textAlignVertical: 'top' },
+    hint: { fontSize: font.sm, color: colors.t3, marginTop: 6 },
 
-  rulesBox: {
-    backgroundColor: colors.s1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 24,
-  },
-  rulesTitle: { fontSize: font.sm, fontWeight: '700', color: colors.t2, marginBottom: 8 },
-  rulesItem: { fontSize: font.sm, color: colors.t3, marginBottom: 4 },
+    rulesBox: {
+      backgroundColor: colors.s1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      padding: 14,
+      marginBottom: 24,
+    },
+    rulesTitle: { fontSize: font.sm, fontWeight: '700', color: colors.t2, marginBottom: 8 },
+    rulesItem: { fontSize: font.sm, color: colors.t3, marginBottom: 4 },
 
-  submitBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
+    submitBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 18,
+      alignItems: 'center',
+      shadowColor: colors.blue,
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    submitBtnDisabled: { opacity: 0.5 },
+    submitBtnText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
 
-  cancelLink: { alignItems: 'center', marginTop: 16 },
-  cancelLinkText: { fontSize: font.base, color: colors.t3 },
+    cancelLink: { alignItems: 'center', marginTop: 16 },
+    cancelLinkText: { fontSize: font.base, color: colors.t3 },
 
-  successRoot: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  successIcon: { fontSize: 56, marginBottom: 16 },
-  successTitle: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 8 },
-  successSub: { fontSize: font.xl, fontWeight: '700', color: colors.blue, marginBottom: 8 },
-  successTime: { fontSize: font.base, color: colors.t2, marginBottom: 16 },
-  successNote: {
-    fontSize: font.sm,
-    color: colors.t3,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  successBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    marginBottom: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  successBtnText: { color: '#fff', fontWeight: '700', fontSize: font.md },
-  successBtnGhost: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    width: '100%',
-    alignItems: 'center',
-  },
-  successBtnGhostText: { color: colors.t2, fontWeight: '600', fontSize: font.base },
-})
+    successRoot: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 32,
+    },
+    successIcon: { fontSize: 56, marginBottom: 16 },
+    successTitle: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 8 },
+    successSub: { fontSize: font.xl, fontWeight: '700', color: colors.blue, marginBottom: 8 },
+    successTime: { fontSize: font.base, color: colors.t2, marginBottom: 16 },
+    successNote: {
+      fontSize: font.sm,
+      color: colors.t3,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 32,
+    },
+    successBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 16,
+      paddingHorizontal: 40,
+      marginBottom: 12,
+      width: '100%',
+      alignItems: 'center',
+    },
+    successBtnText: { color: '#fff', fontWeight: '700', fontSize: font.md },
+    successBtnGhost: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      paddingHorizontal: 40,
+      width: '100%',
+      alignItems: 'center',
+    },
+    successBtnGhostText: { color: colors.t2, fontWeight: '600', fontSize: font.base },
+  })

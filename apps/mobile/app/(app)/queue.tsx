@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -7,7 +7,9 @@ import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { Flame, Plane } from 'lucide-react-native'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 
 type FilterStatus = 'all' | 'waiting' | 'confirmed' | 'active' | 'completed'
 
@@ -39,17 +41,22 @@ function isInConfirmWindow(entry: QueueEntry): boolean {
   return now >= opens && now <= deadline
 }
 
-const STATUS_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  waiting: { bg: '#3A3420', fg: colors.yellow, label: 'Waiting' },
+const getStatusColors = (
+  colors: ThemeColors,
+): Record<string, { bg: string; fg: string; label: string }> => ({
+  waiting: { bg: colors.yellowD, fg: colors.yellow, label: 'Waiting' },
   confirmed: { bg: colors.blueD, fg: colors.blue, label: 'Confirmed' },
   active: { bg: colors.orangeD, fg: colors.orange, label: 'Heating' },
   completed: { bg: colors.greenD, fg: colors.green, label: 'Done' },
   cancelled: { bg: colors.redD, fg: colors.red, label: 'Cancelled' },
-}
+})
 
 export default function QueueScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  const STATUS_COLORS = useMemo(() => getStatusColors(colors), [colors])
   const isMechanic = user?.role === 'mechanic'
   const today = new Date()
   const dates = ['all', addDays(today, 0), addDays(today, 1), addDays(today, 2)]
@@ -333,175 +340,176 @@ export default function QueueScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  headerPad: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 2 },
-  screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2 },
-  screenSub: { fontSize: 13, color: colors.t2, marginBottom: 14 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    headerPad: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 2 },
+    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2 },
+    screenSub: { fontSize: 13, color: colors.t2, marginBottom: 14 },
 
-  // Chips
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
-  chip: {
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 99,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipActive: { backgroundColor: colors.blueD, borderColor: colors.blue },
-  chipText: { fontSize: 12, fontWeight: '600', color: colors.t2 },
-  chipTextActive: { color: colors.blue },
+    // Chips
+    chipRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 20,
+      marginBottom: 14,
+    },
+    chip: {
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 99,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+    },
+    chipActive: { backgroundColor: colors.blueD, borderColor: colors.blue },
+    chipText: { fontSize: 12, fontWeight: '600', color: colors.t2 },
+    chipTextActive: { color: colors.blue },
 
-  // Stats bar
-  statsBar: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
-  statItem: {
-    flex: 1,
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 11,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-  },
-  statItemLabel: {
-    fontSize: 10,
-    color: colors.t3,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  statItemNum: { fontSize: 22, fontWeight: '800' },
+    // Stats bar
+    statsBar: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 20,
+      marginBottom: 14,
+    },
+    statItem: {
+      flex: 1,
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 11,
+      paddingHorizontal: 8,
+      alignItems: 'center',
+    },
+    statItemLabel: {
+      fontSize: 10,
+      color: colors.t3,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    statItemNum: { fontSize: 22, fontWeight: '800' },
 
-  // Date row
-  dateRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
-  dateChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.s1,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  dateChipActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-  dateChipText: { fontSize: font.sm, color: colors.t2, fontWeight: '600' },
-  dateChipTextActive: { color: '#fff' },
+    // Date row
+    dateRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
+    dateChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.s1,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    dateChipActive: { backgroundColor: colors.blue, borderColor: colors.blue },
+    dateChipText: { fontSize: font.sm, color: colors.t2, fontWeight: '600' },
+    dateChipTextActive: { color: '#fff' },
 
-  // Queue item
-  queueItem: {
-    flexDirection: 'row',
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  queueItemMine: {
-    borderColor: colors.blue,
-    backgroundColor: '#12203F',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  queueItemActive: {
-    borderColor: colors.orange,
-    shadowColor: colors.orange,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  queueItemDone: { borderColor: colors.greenD },
+    // Queue item
+    queueItem: {
+      flexDirection: 'row',
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      marginBottom: 10,
+    },
+    queueItemMine: {
+      borderColor: colors.blue,
+      backgroundColor: colors.blueD,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    queueItemActive: {
+      borderColor: colors.orange,
+      shadowColor: colors.orange,
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    queueItemDone: { borderColor: colors.greenD },
 
-  // Position panel
-  posPanel: {
-    width: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    borderRightWidth: 1,
-    borderRightColor: colors.border,
-    paddingVertical: 14,
-  },
-  posPanelMine: { borderRightColor: colors.blue, backgroundColor: 'rgba(59,142,240,0.07)' },
-  posPanelActive: { borderRightColor: colors.orange },
-  posPanelDone: { borderRightColor: colors.greenD },
-  posNum: { fontSize: 20, fontWeight: '800' },
-  posLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    color: colors.t3,
-    letterSpacing: 0.4,
-  },
+    // Position panel
+    posPanel: {
+      width: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+      borderRightWidth: 1,
+      borderRightColor: colors.border,
+      paddingVertical: 14,
+    },
+    posPanelMine: { borderRightColor: colors.blue, backgroundColor: colors.blueG },
+    posPanelActive: { borderRightColor: colors.orange },
+    posPanelDone: { borderRightColor: colors.greenD },
+    posNum: { fontSize: 20, fontWeight: '800' },
+    posLabel: {
+      fontSize: 9,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      color: colors.t3,
+      letterSpacing: 0.4,
+    },
 
-  // Body
-  queueBody: { flex: 1, padding: 13 },
-  queueTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  queueTail: { fontSize: 16, fontWeight: '800', color: colors.text },
-  queueMeta: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    // Body
+    queueBody: { flex: 1, padding: 13 },
+    queueTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 2,
+    },
+    queueTail: { fontSize: 16, fontWeight: '800', color: colors.text },
+    queueMeta: { fontSize: 12, color: colors.t2, marginTop: 2 },
 
-  // Status pill
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 99,
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusPillText: { fontSize: 10, fontWeight: '700' },
+    // Status pill
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 99,
+    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    statusPillText: { fontSize: 10, fontWeight: '700' },
 
-  // Times
-  timesRow: { flexDirection: 'row', gap: 14, marginTop: 8 },
-  timeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.t3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  timeValue: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 1 },
+    // Times
+    timesRow: { flexDirection: 'row', gap: 14, marginTop: 8 },
+    timeLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.t3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    timeValue: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 1 },
 
-  // Inline confirm
-  inlineConfirmBtn: {
-    backgroundColor: colors.orange,
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    shadowColor: colors.orange,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inlineConfirmText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    // Inline confirm
+    inlineConfirmBtn: {
+      backgroundColor: colors.orange,
+      borderRadius: 10,
+      paddingVertical: 9,
+      paddingHorizontal: 14,
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      marginTop: 10,
+      shadowColor: colors.orange,
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    inlineConfirmText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
-  // List
-  listContent: { padding: 16, paddingTop: 4, paddingBottom: 40 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorBox: { margin: 16, backgroundColor: colors.redD, borderRadius: radius.md, padding: 16 },
-  errorText: { color: colors.red, fontSize: font.base, textAlign: 'center' },
-  empty: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { color: colors.t3, fontSize: font.base },
-})
+    // List
+    listContent: { padding: 16, paddingTop: 4, paddingBottom: 40 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    errorBox: { margin: 16, backgroundColor: colors.redD, borderRadius: radius.md, padding: 16 },
+    errorText: { color: colors.red, fontSize: font.base, textAlign: 'center' },
+    empty: { alignItems: 'center', paddingVertical: 60 },
+    emptyText: { color: colors.t3, fontSize: font.base },
+  })

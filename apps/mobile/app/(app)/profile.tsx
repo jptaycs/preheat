@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -16,15 +16,19 @@ import { useFocusEffect } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { aircraftApi, preferencesApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem, NotificationPrefs } from '../../src/lib/api'
-import { Plane, Wrench, Settings, ChevronRight } from 'lucide-react-native'
+import { Plane, Wrench, Settings, ChevronRight, Sun, Moon } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 
-const ROLE_COLORS: Record<string, { bg: string; fg: string; label: string; Icon: LucideIcon }> = {
+const getRoleColors = (
+  colors: ThemeColors,
+): Record<string, { bg: string; fg: string; label: string; Icon: LucideIcon }> => ({
   pilot: { bg: colors.blueD, fg: colors.blue, label: 'Pilot Role', Icon: Plane },
   mechanic: { bg: colors.orangeD, fg: colors.orange, label: 'Mechanic Role', Icon: Wrench },
   admin: { bg: colors.greenD, fg: colors.green, label: 'Admin Role', Icon: Settings },
-}
+})
 
 function getInitials(name: string): string {
   return name
@@ -36,6 +40,9 @@ function getInitials(name: string): string {
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth()
+  const { colors, mode, setMode } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  const ROLE_COLORS = useMemo(() => getRoleColors(colors), [colors])
 
   const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const [loadingAircraft, setLoadingAircraft] = useState(true)
@@ -263,6 +270,31 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Appearance section */}
+        <Text style={styles.sectionTitle}>APPEARANCE</Text>
+        <View style={styles.settingsCard}>
+          <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+              {mode === 'light' ? (
+                <Sun size={16} color={colors.t2} />
+              ) : (
+                <Moon size={16} color={colors.t2} />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingsLabel}>Light Mode</Text>
+                <Text style={styles.settingsSub}>Use a light color theme</Text>
+              </View>
+            </View>
+            <Switch
+              value={mode === 'light'}
+              onValueChange={(v) => setMode(v ? 'light' : 'dark')}
+              trackColor={{ false: colors.s3, true: colors.blue }}
+              thumbColor="#fff"
+              accessibilityLabel="Toggle light mode"
+            />
+          </View>
+        </View>
+
         {/* Aircraft section */}
         <View style={styles.aircraftHeader}>
           <Text style={styles.sectionTitle}>MY AIRCRAFT</Text>
@@ -398,218 +430,219 @@ export default function ProfileScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingBottom: 60 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    content: { paddingBottom: 60 },
 
-  // Profile header
-  profileHeader: {
-    alignItems: 'center',
-    paddingTop: 28,
-    paddingBottom: 22,
-    paddingHorizontal: 20,
-  },
-  avatarLg: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.blueD,
-    borderWidth: 3,
-    borderColor: colors.blue,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-    marginBottom: 14,
-  },
-  avatarLgText: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  profileName: { fontSize: 20, fontWeight: '800', color: colors.text },
-  profileLicense: { fontSize: 13, color: colors.t2, marginTop: 3 },
-  rolePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 99,
-    marginTop: 10,
-  },
-  rolePillText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    // Profile header
+    profileHeader: {
+      alignItems: 'center',
+      paddingTop: 28,
+      paddingBottom: 22,
+      paddingHorizontal: 20,
+    },
+    avatarLg: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.blueD,
+      borderWidth: 3,
+      borderColor: colors.blue,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 6,
+      marginBottom: 14,
+    },
+    avatarLgText: { fontSize: 28, fontWeight: '800', color: '#fff' },
+    profileName: { fontSize: 20, fontWeight: '800', color: colors.text },
+    profileLicense: { fontSize: 13, color: colors.t2, marginTop: 3 },
+    rolePill: {
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+      borderRadius: 99,
+      marginTop: 10,
+    },
+    rolePillText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
 
-  // Stats row
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 28,
-    marginTop: 16,
-  },
-  statItem: { alignItems: 'center' },
-  statNum: { fontSize: 18, fontWeight: '800', color: colors.text },
-  statLabel: { fontSize: 11, color: colors.t3 },
-  statDivider: { width: 1, height: 28, backgroundColor: colors.border },
+    // Stats row
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 28,
+      marginTop: 16,
+    },
+    statItem: { alignItems: 'center' },
+    statNum: { fontSize: 18, fontWeight: '800', color: colors.text },
+    statLabel: { fontSize: 11, color: colors.t3 },
+    statDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-  // Section title
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.t3,
-    marginBottom: 8,
-    marginTop: 4,
-    paddingHorizontal: 20,
-  },
+    // Section title
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.t3,
+      marginBottom: 8,
+      marginTop: 4,
+      paddingHorizontal: 20,
+    },
 
-  // Settings card
-  settingsCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginHorizontal: 20,
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  settingsLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-  settingsValue: { fontSize: 12, color: colors.t2, marginTop: 2 },
-  settingsSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
-  chevron: { fontSize: 18, color: colors.t3 },
+    // Settings card
+    settingsCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginHorizontal: 20,
+      marginBottom: 14,
+      overflow: 'hidden',
+    },
+    settingsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    settingsLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+    settingsValue: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    settingsSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    chevron: { fontSize: 18, color: colors.t3 },
 
-  // Toggle row
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
+    // Toggle row
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
 
-  // Aircraft section
-  aircraftHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: 20,
-    marginBottom: 0,
-  },
-  addBtn: {
-    borderWidth: 1,
-    borderColor: colors.blue,
-    borderRadius: radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  addBtnText: { color: colors.blue, fontSize: font.sm, fontWeight: '600' },
-  addForm: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    gap: 6,
-  },
-  formLabel: { fontSize: font.sm, color: colors.t2, marginBottom: 4, marginTop: 6 },
-  input: {
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.text,
-    fontSize: font.base,
-  },
-  formError: { color: colors.red, fontSize: font.sm, marginTop: 4 },
-  submitBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
+    // Aircraft section
+    aircraftHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingRight: 20,
+      marginBottom: 0,
+    },
+    addBtn: {
+      borderWidth: 1,
+      borderColor: colors.blue,
+      borderRadius: radius.full,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    addBtnText: { color: colors.blue, fontSize: font.sm, fontWeight: '600' },
+    addForm: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      marginHorizontal: 20,
+      marginBottom: 12,
+      gap: 6,
+    },
+    formLabel: { fontSize: font.sm, color: colors.t2, marginBottom: 4, marginTop: 6 },
+    input: {
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.text,
+      fontSize: font.base,
+    },
+    formError: { color: colors.red, fontSize: font.sm, marginTop: 4 },
+    submitBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    submitBtnDisabled: { opacity: 0.6 },
+    submitBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
 
-  centerPad: { alignItems: 'center', paddingVertical: 20 },
-  inlineError: { alignItems: 'center', paddingVertical: 12, gap: 8 },
-  inlineErrorText: { color: colors.red, fontSize: font.base },
-  retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.sm },
+    centerPad: { alignItems: 'center', paddingVertical: 20 },
+    inlineError: { alignItems: 'center', paddingVertical: 12, gap: 8 },
+    inlineErrorText: { color: colors.red, fontSize: font.base },
+    retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.sm },
 
-  aircraftEmpty: { paddingVertical: 20, alignItems: 'center' },
-  aircraftEmptyText: { color: colors.t3, fontSize: font.base },
-  aircraftCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    marginHorizontal: 20,
-    marginBottom: 8,
-    gap: 12,
-  },
-  aircraftIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.s2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aircraftIconText: { fontSize: 18 },
-  aircraftInfo: { flex: 1 },
-  aircraftTail: { fontSize: font.base, fontWeight: '700', color: colors.text },
-  aircraftTypeName: { fontSize: font.sm, color: colors.t2, marginTop: 2 },
-  deleteBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.redD,
-    minWidth: 64,
-    alignItems: 'center',
-  },
-  deleteBtnText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
+    aircraftEmpty: { paddingVertical: 20, alignItems: 'center' },
+    aircraftEmptyText: { color: colors.t3, fontSize: font.base },
+    aircraftCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      marginHorizontal: 20,
+      marginBottom: 8,
+      gap: 12,
+    },
+    aircraftIconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.s2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    aircraftIconText: { fontSize: 18 },
+    aircraftInfo: { flex: 1 },
+    aircraftTail: { fontSize: font.base, fontWeight: '700', color: colors.text },
+    aircraftTypeName: { fontSize: font.sm, color: colors.t2, marginTop: 2 },
+    deleteBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.redD,
+      minWidth: 64,
+      alignItems: 'center',
+    },
+    deleteBtnText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
 
-  // Sign out
-  signOutBtn: {
-    borderWidth: 1.5,
-    borderColor: colors.redD,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 16,
-  },
-  signOutText: { color: colors.red, fontWeight: '700', fontSize: font.base },
+    // Sign out
+    signOutBtn: {
+      borderWidth: 1.5,
+      borderColor: colors.redD,
+      borderRadius: radius.md,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginHorizontal: 20,
+      marginTop: 16,
+    },
+    signOutText: { color: colors.red, fontWeight: '700', fontSize: font.base },
 
-  // Privacy + version
-  privacyLink: {
-    fontSize: 12,
-    color: colors.t3,
-    textAlign: 'center',
-    marginTop: 16,
-    textDecorationLine: 'underline',
-  },
-  versionText: {
-    fontSize: 11,
-    color: colors.t3,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 4,
-  },
-})
+    // Privacy + version
+    privacyLink: {
+      fontSize: 12,
+      color: colors.t3,
+      textAlign: 'center',
+      marginTop: 16,
+      textDecorationLine: 'underline',
+    },
+    versionText: {
+      fontSize: 11,
+      color: colors.t3,
+      textAlign: 'center',
+      marginTop: 6,
+      marginBottom: 4,
+    },
+  })

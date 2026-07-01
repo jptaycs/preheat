@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -31,7 +31,9 @@ import { useBadge } from '../../src/context/BadgeContext'
 import { preheatRequestsApi, queueApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 
 function getGreeting(): { text: string; iconName: string } {
   const h = new Date().getHours()
@@ -64,6 +66,8 @@ export default function DashboardScreen() {
   const { user, logout, devLogin } = useAuth()
   const { setConfirmBadge } = useBadge()
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -366,7 +370,7 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
             {myRequests.slice(0, 5).map((req) => {
-              const iconStyle = getActivityIcon(req.status)
+              const iconStyle = getActivityIcon(req.status, colors)
               return (
                 <View key={req.id} style={styles.activityItem}>
                   <View style={[styles.activityIconBox, { backgroundColor: iconStyle.bg }]}>
@@ -415,7 +419,10 @@ export default function DashboardScreen() {
   )
 }
 
-function getActivityIcon(status: string): {
+function getActivityIcon(
+  status: string,
+  colors: ThemeColors,
+): {
   Icon: React.ComponentType<{ size: number; color: string }>
   color: string
   bg: string
@@ -433,6 +440,8 @@ function getActivityIcon(status: string): {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const map: Record<string, { bg: string; fg: string; label: string }> = {
     waiting: { bg: colors.yellow + '33', fg: colors.yellow, label: 'Waiting' },
     confirm: { bg: colors.orangeD, fg: colors.orange, label: 'Confirm Required' },
@@ -450,234 +459,235 @@ function StatusPill({ status }: { status: string }) {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  root: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, paddingBottom: 40 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    root: { flex: 1, backgroundColor: colors.bg },
+    content: { padding: 20, paddingBottom: 40 },
 
-  // Header
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  greeting: { fontSize: 13, color: colors.t2 },
-  name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 2 },
-  avatarWrap: { position: 'relative' },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.blueD,
-  },
-  avatarText: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  avatarDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.red,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: colors.bg,
-  },
+    // Header
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 18,
+    },
+    greeting: { fontSize: 13, color: colors.t2 },
+    name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 2 },
+    avatarWrap: { position: 'relative' },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.blueD,
+    },
+    avatarText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+    avatarDot: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 10,
+      height: 10,
+      backgroundColor: colors.red,
+      borderRadius: 5,
+      borderWidth: 2,
+      borderColor: colors.bg,
+    },
 
-  // Alert banner
-  alertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.orangeD,
-    borderWidth: 1,
-    borderColor: colors.orange,
-    borderRadius: radius.md,
-    padding: 13,
-    marginBottom: 14,
-    gap: 11,
-  },
-  alertIcon: { fontSize: 18 },
-  alertText: { flex: 1 },
-  alertTitle: { fontSize: 13, fontWeight: '700', color: colors.orange },
-  alertBody: { fontSize: 12, color: colors.t2, marginTop: 2 },
-  alertChevron: { fontSize: 20, color: colors.orange },
+    // Alert banner
+    alertBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.orangeD,
+      borderWidth: 1,
+      borderColor: colors.orange,
+      borderRadius: radius.md,
+      padding: 13,
+      marginBottom: 14,
+      gap: 11,
+    },
+    alertIcon: { fontSize: 18 },
+    alertText: { flex: 1 },
+    alertTitle: { fontSize: 13, fontWeight: '700', color: colors.orange },
+    alertBody: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    alertChevron: { fontSize: 20, color: colors.orange },
 
-  // Loading / Error
-  center: { alignItems: 'center', paddingVertical: 40 },
-  errorBox: {
-    backgroundColor: colors.redD,
-    borderRadius: radius.md,
-    padding: 16,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  errorText: { color: colors.red, fontSize: font.base },
-  retryText: {
-    color: colors.red,
-    fontSize: font.base,
-    marginTop: 8,
-    textDecorationLine: 'underline',
-  },
+    // Loading / Error
+    center: { alignItems: 'center', paddingVertical: 40 },
+    errorBox: {
+      backgroundColor: colors.redD,
+      borderRadius: radius.md,
+      padding: 16,
+      marginBottom: 20,
+      alignItems: 'center',
+    },
+    errorText: { color: colors.red, fontSize: font.base },
+    retryText: {
+      color: colors.red,
+      fontSize: font.base,
+      marginTop: 8,
+      textDecorationLine: 'underline',
+    },
 
-  // Flight card (blue gradient style)
-  flightCard: {
-    backgroundColor: '#12213F',
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.blueD,
-    padding: 20,
-    marginBottom: 14,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  flightCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  flightTail: { fontSize: 24, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
-  flightGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  flightGridItem: { width: '46%' },
-  flightGridLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.t3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginBottom: 3,
-  },
-  flightGridValue: { fontSize: 18, fontWeight: '800', color: colors.text },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
-  flightBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  flightBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  confirmFlightBtn: {
-    backgroundColor: colors.orange,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    shadowColor: colors.orange,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  confirmFlightBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+    // Flight card (blue gradient style)
+    flightCard: {
+      backgroundColor: colors.blueD,
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.blueD,
+      padding: 20,
+      marginBottom: 14,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    flightCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    flightTail: { fontSize: 24, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    flightGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    flightGridItem: { width: '46%' },
+    flightGridLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.t3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+      marginBottom: 3,
+    },
+    flightGridValue: { fontSize: 18, fontWeight: '800', color: colors.text },
+    divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
+    flightBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+      shadowColor: colors.blue,
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    flightBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+    confirmFlightBtn: {
+      backgroundColor: colors.orange,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+      shadowColor: colors.orange,
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    confirmFlightBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 
-  // Pill
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  pillDot: { width: 6, height: 6, borderRadius: 3 },
-  pillText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+    // Pill
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 99,
+    },
+    pillDot: { width: 6, height: 6, borderRadius: 3 },
+    pillText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
 
-  // Quick actions
-  section: { marginTop: 10, marginBottom: 14 },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.t3,
-    marginBottom: 8,
-  },
-  quickRow: { flexDirection: 'row', gap: 10 },
-  quickBox: {
-    flex: 1,
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    gap: 3,
-  },
-  quickIcon: { fontSize: 28 },
-  quickLabel: { fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 6 },
-  quickSub: { fontSize: 11, color: colors.t3 },
+    // Quick actions
+    section: { marginTop: 10, marginBottom: 14 },
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.t3,
+      marginBottom: 8,
+    },
+    quickRow: { flexDirection: 'row', gap: 10 },
+    quickBox: {
+      flex: 1,
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 16,
+      paddingHorizontal: 8,
+      alignItems: 'center',
+      gap: 3,
+    },
+    quickIcon: { fontSize: 28 },
+    quickLabel: { fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 6 },
+    quickSub: { fontSize: 11, color: colors.t3 },
 
-  // Stats
-  statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: {
-    flex: 1,
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 11,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 10,
-    color: colors.t3,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  statNum: { fontSize: 22, fontWeight: '800', color: colors.text },
+    // Stats
+    statsRow: { flexDirection: 'row', gap: 10 },
+    statBox: {
+      flex: 1,
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 11,
+      paddingHorizontal: 8,
+      alignItems: 'center',
+    },
+    statLabel: {
+      fontSize: 10,
+      color: colors.t3,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    statNum: { fontSize: 22, fontWeight: '800', color: colors.text },
 
-  // Recent activity
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  activityIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activityIconText: { fontSize: 17 },
-  activityBody: { flex: 1 },
-  activityTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
-  activitySub: { fontSize: 12, color: colors.t2, lineHeight: 18 },
+    // Recent activity
+    activityItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    activityIconBox: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activityIconText: { fontSize: 17 },
+    activityBody: { flex: 1 },
+    activityTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
+    activitySub: { fontSize: 12, color: colors.t2, lineHeight: 18 },
 
-  // Dev panel
-  devPanel: {
-    marginTop: 20,
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-  },
-  devTitle: { fontSize: font.sm, color: colors.t3, marginBottom: 10, fontWeight: '600' },
-  devRow: { flexDirection: 'row', gap: 8 },
-  devBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  devBtnText: { color: colors.t2, fontSize: font.sm, fontWeight: '600' },
-})
+    // Dev panel
+    devPanel: {
+      marginTop: 20,
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+    },
+    devTitle: { fontSize: font.sm, color: colors.t3, marginBottom: 10, fontWeight: '600' },
+    devRow: { flexDirection: 'row', gap: 8 },
+    devBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    devBtnText: { color: colors.t2, fontSize: font.sm, fontWeight: '600' },
+  })

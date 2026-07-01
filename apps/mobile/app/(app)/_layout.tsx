@@ -1,11 +1,15 @@
 import { Tabs } from 'expo-router'
 import { View, StyleSheet } from 'react-native'
-import { colors } from '../../src/theme'
+import { useMemo } from 'react'
+import { useTheme } from '../../src/context/ThemeContext'
+import type { ThemeColors } from '../../src/theme'
 import { Home, ListOrdered, Bell, User } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
 import { useBadge } from '../../src/context/BadgeContext'
 
 function TabIcon({ Icon, focused }: { Icon: LucideIcon; focused: boolean }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.iconWrap}>
       <Icon size={22} color={focused ? colors.blue : colors.t2} strokeWidth={focused ? 2.2 : 1.5} />
@@ -18,6 +22,7 @@ const hiddenTab = { tabBarButton: () => null, tabBarItemStyle: { display: 'none'
 
 export default function AppLayout() {
   const { alertBadge, confirmBadge } = useBadge()
+  const { colors } = useTheme()
 
   return (
     <Tabs
@@ -73,22 +78,23 @@ export default function AppLayout() {
   )
 }
 
-const styles = StyleSheet.create({
-  iconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  icon: {
-    fontSize: 22,
-  },
-  iconInactive: {
-    opacity: 0.4,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.blue,
-  },
-})
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    iconWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    icon: {
+      fontSize: 22,
+    },
+    iconInactive: {
+      opacity: 0.4,
+    },
+    dot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.blue,
+    },
+  })

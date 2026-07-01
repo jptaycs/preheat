@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { Audio, type AVPlaybackSource } from 'expo-av'
 import { Clock, Pencil } from 'lucide-react-native'
-import { colors, font, radius } from '../theme'
+import { font, radius } from '../theme'
+import type { ThemeColors } from '../theme'
+import { useTheme } from '../context/ThemeContext'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const alarmSound = require('../../assets/alarm.mp3') as AVPlaybackSource
@@ -22,6 +24,8 @@ export function CountdownTimer({
   onEdit,
   onExpired,
 }: CountdownTimerProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [remainingMs, setRemainingMs] = useState(0)
   const [expired, setExpired] = useState(false)
   const expiredRef = useRef(false)
@@ -122,40 +126,41 @@ export function CountdownTimer({
   )
 }
 
-const styles = StyleSheet.create({
-  container: { alignItems: 'center', marginBottom: 14 },
-  ring: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inner: {
-    width: 136,
-    height: 136,
-    borderRadius: 68,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.s2,
-    gap: 4,
-  },
-  time: { fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  timeExpired: { fontSize: 18 },
-  label: { fontSize: 11, color: colors.t2, fontWeight: '600' },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.s2,
-  },
-  editText: { fontSize: font.sm, color: colors.blue, fontWeight: '600' },
-})
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: { alignItems: 'center', marginBottom: 14 },
+    ring: {
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      borderWidth: 5,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    inner: {
+      width: 136,
+      height: 136,
+      borderRadius: 68,
+      borderWidth: 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.s2,
+      gap: 4,
+    },
+    time: { fontSize: 28, fontWeight: '900', textAlign: 'center' },
+    timeExpired: { fontSize: 18 },
+    label: { fontSize: 11, color: colors.t2, fontWeight: '600' },
+    editBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.s2,
+    },
+    editText: { fontSize: font.sm, color: colors.blue, fontWeight: '600' },
+  })

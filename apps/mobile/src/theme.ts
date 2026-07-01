@@ -1,4 +1,26 @@
-export const colors = {
+export interface ThemeColors {
+  bg: string
+  s1: string
+  s2: string
+  s3: string
+  border: string
+  blue: string
+  blueD: string
+  blueG: string
+  orange: string
+  orangeD: string
+  green: string
+  greenD: string
+  red: string
+  redD: string
+  yellow: string
+  yellowD: string
+  text: string
+  t2: string
+  t3: string
+}
+
+export const darkColors: ThemeColors = {
   bg: '#0C0E14',
   s1: '#141720',
   s2: '#1C2030',
@@ -14,10 +36,33 @@ export const colors = {
   red: '#F05252',
   redD: '#6B1E1E',
   yellow: '#F5C842',
+  yellowD: '#3A3420',
   text: '#EEF0F6',
   t2: '#8B93A8',
   t3: '#555E78',
-} as const
+}
+
+export const lightColors: ThemeColors = {
+  bg: '#F4F5F9',
+  s1: '#FFFFFF',
+  s2: '#EEF0F5',
+  s3: '#E4E7EF',
+  border: '#DEE1EA',
+  blue: '#2F6FE0',
+  blueD: '#DCEAFD',
+  blueG: 'rgba(47,111,224,0.10)',
+  orange: '#D97F1A',
+  orangeD: '#FBEAD4',
+  green: '#1E9E5A',
+  greenD: '#DFF5E8',
+  red: '#D93B3B',
+  redD: '#FBE0E0',
+  yellow: '#B8860B',
+  yellowD: '#FBF1D6',
+  text: '#12141C',
+  t2: '#5B6479',
+  t3: '#9AA1B4',
+}
 
 export const radius = {
   sm: 10,

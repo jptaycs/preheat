@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -7,7 +7,9 @@ import { useCallback } from 'react'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 import { useBadge } from '../../src/context/BadgeContext'
 import { useAuth } from '../../src/context/AuthContext'
 
@@ -28,13 +30,15 @@ interface AlertItem {
   urgent?: boolean
 }
 
-const ALERT_STYLE: Record<AlertType, { Icon: LucideIcon; color: string; bg: string }> = {
+const getAlertStyle = (
+  colors: ThemeColors,
+): Record<AlertType, { Icon: LucideIcon; color: string; bg: string }> => ({
   confirm_reminder: { Icon: BellRing, color: colors.red, bg: colors.redD },
   slot_cancelled: { Icon: XCircle, color: colors.red, bg: colors.redD },
   session_started: { Icon: Flame, color: colors.orange, bg: colors.orangeD },
   session_completed: { Icon: CheckCircle, color: colors.green, bg: colors.greenD },
   info: { Icon: Info, color: colors.blue, bg: colors.blueD },
-}
+})
 
 function fmtRelative(date: Date): string {
   const diffMs = Date.now() - date.getTime()
@@ -71,6 +75,9 @@ const INITIAL_ALERTS: AlertItem[] = [
 export default function AlertsScreen() {
   const router = useRouter()
   const { user } = useAuth()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  const ALERT_STYLE = useMemo(() => getAlertStyle(colors), [colors])
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS)
   const { incAlertBadge, clearAlertBadge } = useBadge()
 
@@ -243,78 +250,79 @@ export default function AlertsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingBottom: 12,
-  },
-  screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  markReadBtn: { fontSize: 12, color: colors.blue, fontWeight: '600' },
-  listContent: { padding: 16, paddingBottom: 40 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    headerBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      paddingBottom: 12,
+    },
+    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+    markReadBtn: { fontSize: 12, color: colors.blue, fontWeight: '600' },
+    listContent: { padding: 16, paddingBottom: 40 },
 
-  // Section label
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: colors.t3,
-    marginTop: 12,
-    marginBottom: 4,
-  },
+    // Section label
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: colors.t3,
+      marginTop: 12,
+      marginBottom: 4,
+    },
 
-  // Urgent card
-  urgentCard: {
-    backgroundColor: 'rgba(240,82,82,0.07)',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.redD,
-    padding: 12,
-    marginBottom: 12,
-  },
-  urgentLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.red,
-  },
+    // Urgent card
+    urgentCard: {
+      backgroundColor: 'rgba(240,82,82,0.07)',
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.redD,
+      padding: 12,
+      marginBottom: 12,
+    },
+    urgentLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.red,
+    },
 
-  // Notification item
-  nItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  nIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nIcon: { fontSize: 17 },
-  nBody: { flex: 1 },
-  nTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
-  nMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
-  nTime: { fontSize: 11, color: colors.t3, marginTop: 3 },
-  nDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 4,
-  },
+    // Notification item
+    nItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    nIconBox: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    nIcon: { fontSize: 17 },
+    nBody: { flex: 1 },
+    nTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
+    nMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
+    nTime: { fontSize: 11, color: colors.t3, marginTop: 3 },
+    nDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginTop: 4,
+    },
 
-  // Empty
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
-})
+    // Empty
+    emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+    emptyIcon: { fontSize: 48, marginBottom: 16 },
+    emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
+    emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
+  })

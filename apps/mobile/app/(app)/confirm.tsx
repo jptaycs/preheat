@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest } from '../../src/lib/api'
 import { AlertTriangle, Flame, Plane, CheckCircle, XCircle, Check } from 'lucide-react-native'
-import { colors, font, radius } from '../../src/theme'
+import { font, radius } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
@@ -38,6 +40,8 @@ function getConfirmPending(requests: PreheatRequest[]): PreheatRequest[] {
 }
 
 function CountdownRing({ deadline }: { deadline: string }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [secondsLeft, setSecondsLeft] = useState(() => {
     const ms = new Date(deadline).getTime() - Date.now()
     return Math.max(0, Math.floor(ms / 1000))
@@ -76,6 +80,8 @@ function CountdownRing({ deadline }: { deadline: string }) {
 
 export default function ConfirmScreen() {
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<PreheatRequest[]>([])
@@ -320,215 +326,216 @@ export default function ConfirmScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { paddingBottom: 40 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    scrollContent: { paddingBottom: 40 },
 
-  // Error
-  errorBox: {
-    margin: 20,
-    backgroundColor: colors.redD,
-    borderRadius: radius.md,
-    padding: 20,
-    alignItems: 'center',
-  },
-  errorText: { color: colors.red, fontSize: font.base, marginBottom: 10, textAlign: 'center' },
-  retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.base },
+    // Error
+    errorBox: {
+      margin: 20,
+      backgroundColor: colors.redD,
+      borderRadius: radius.md,
+      padding: 20,
+      alignItems: 'center',
+    },
+    errorText: { color: colors.red, fontSize: font.base, marginBottom: 10, textAlign: 'center' },
+    retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.base },
 
-  // Empty
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
+    // Empty
+    emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+    emptyIcon: { fontSize: 48, marginBottom: 16 },
+    emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
+    emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
 
-  // Confirmed animation
-  confirmedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  confirmedCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.greenD,
-    borderWidth: 3,
-    borderColor: colors.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: colors.green,
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  confirmedIcon: { fontSize: 36, color: colors.green },
-  confirmedTitle: { fontSize: 24, fontWeight: '800', color: colors.green, marginBottom: 8 },
-  confirmedBody: { fontSize: font.base, color: colors.t2, textAlign: 'center' },
+    // Confirmed animation
+    confirmedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+    confirmedCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.greenD,
+      borderWidth: 3,
+      borderColor: colors.green,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      shadowColor: colors.green,
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    confirmedIcon: { fontSize: 36, color: colors.green },
+    confirmedTitle: { fontSize: 24, fontWeight: '800', color: colors.green, marginBottom: 8 },
+    confirmedBody: { fontSize: font.base, color: colors.t2, textAlign: 'center' },
 
-  // Red header
-  redHeader: {
-    alignItems: 'center',
-    paddingTop: 28,
-    paddingBottom: 0,
-    paddingHorizontal: 20,
-  },
-  warningCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.redD,
-    borderWidth: 3,
-    borderColor: colors.red,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.red,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  warningIcon: { fontSize: 36 },
-  actionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.red,
-    marginTop: 14,
-  },
-  headerTitle: {
-    fontSize: 21,
-    fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 26,
-  },
-  headerSub: {
-    fontSize: 13,
-    color: colors.t2,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
+    // Red header
+    redHeader: {
+      alignItems: 'center',
+      paddingTop: 28,
+      paddingBottom: 0,
+      paddingHorizontal: 20,
+    },
+    warningCircle: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.redD,
+      borderWidth: 3,
+      borderColor: colors.red,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.red,
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    warningIcon: { fontSize: 36 },
+    actionLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: colors.red,
+      marginTop: 14,
+    },
+    headerTitle: {
+      fontSize: 21,
+      fontWeight: '800',
+      color: colors.text,
+      textAlign: 'center',
+      marginTop: 6,
+      lineHeight: 26,
+    },
+    headerSub: {
+      fontSize: 13,
+      color: colors.t2,
+      textAlign: 'center',
+      marginTop: 8,
+      lineHeight: 20,
+    },
 
-  // Countdown ring
-  ringWrap: { alignItems: 'center', marginTop: 22, marginBottom: 16 },
-  ringOuter: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringInner: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-  },
-  ringNum: { fontSize: 28, fontWeight: '900', lineHeight: 32 },
-  ringLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
-  ringHint: { fontSize: 12, color: colors.t3, marginTop: 8 },
+    // Countdown ring
+    ringWrap: { alignItems: 'center', marginTop: 22, marginBottom: 16 },
+    ringOuter: {
+      width: 130,
+      height: 130,
+      borderRadius: 65,
+      borderWidth: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    ringInner: {
+      width: 110,
+      height: 110,
+      borderRadius: 55,
+      borderWidth: 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.bg,
+    },
+    ringNum: { fontSize: 28, fontWeight: '900', lineHeight: 32 },
+    ringLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
+    ringHint: { fontSize: 12, color: colors.t3, marginTop: 8 },
 
-  // Summary card
-  summaryCard: {
-    backgroundColor: colors.s1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    marginHorizontal: 20,
-    marginBottom: 14,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  summaryTail: { fontSize: 22, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
-  queueBadge: {
-    backgroundColor: colors.orangeD,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  queueBadgeText: { fontSize: 10, fontWeight: '700', color: colors.orange },
-  summaryGrid: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  gridLabel: {
-    fontSize: 10,
-    color: colors.t3,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 3,
-  },
-  gridValue: { fontSize: 17, fontWeight: '800', color: colors.text },
+    // Summary card
+    summaryCard: {
+      backgroundColor: colors.s1,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 18,
+      marginHorizontal: 20,
+      marginBottom: 14,
+    },
+    summaryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    summaryTail: { fontSize: 22, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    queueBadge: {
+      backgroundColor: colors.orangeD,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+    },
+    queueBadgeText: { fontSize: 10, fontWeight: '700', color: colors.orange },
+    summaryGrid: {
+      flexDirection: 'row',
+      gap: 20,
+    },
+    gridLabel: {
+      fontSize: 10,
+      color: colors.t3,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginBottom: 3,
+    },
+    gridValue: { fontSize: 17, fontWeight: '800', color: colors.text },
 
-  // Warning alert
-  warningAlert: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 11,
-    backgroundColor: colors.redD,
-    borderWidth: 1,
-    borderColor: colors.red,
-    borderRadius: radius.md,
-    padding: 13,
-    marginHorizontal: 20,
-    marginBottom: 18,
-  },
-  warningAlertIcon: { fontSize: 18, marginTop: 1 },
-  warningAlertTitle: { fontSize: 13, fontWeight: '700', color: colors.red, marginBottom: 2 },
-  warningAlertMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
+    // Warning alert
+    warningAlert: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 11,
+      backgroundColor: colors.redD,
+      borderWidth: 1,
+      borderColor: colors.red,
+      borderRadius: radius.md,
+      padding: 13,
+      marginHorizontal: 20,
+      marginBottom: 18,
+    },
+    warningAlertIcon: { fontSize: 18, marginTop: 1 },
+    warningAlertTitle: { fontSize: 13, fontWeight: '700', color: colors.red, marginBottom: 2 },
+    warningAlertMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
 
-  // Buttons
-  confirmBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 20,
-    alignItems: 'center',
-    marginHorizontal: 20,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  confirmBtnDisabled: { opacity: 0.6 },
-  confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 17 },
-  cancelHint: {
-    fontSize: 12,
-    color: colors.t3,
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  cancelBtn: {
-    backgroundColor: colors.redD,
-    borderWidth: 1.5,
-    borderColor: colors.red,
-    borderRadius: radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginHorizontal: 20,
-  },
-  cancelBtnText: { color: colors.red, fontWeight: '600', fontSize: 14 },
-  cancelErrorText: {
-    color: colors.red,
-    fontSize: font.sm,
-    textAlign: 'center',
-    marginTop: 8,
-    marginHorizontal: 20,
-  },
-  moreText: {
-    fontSize: 12,
-    color: colors.t3,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-})
+    // Buttons
+    confirmBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 20,
+      alignItems: 'center',
+      marginHorizontal: 20,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.4,
+      shadowRadius: 14,
+      elevation: 6,
+    },
+    confirmBtnDisabled: { opacity: 0.6 },
+    confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 17 },
+    cancelHint: {
+      fontSize: 12,
+      color: colors.t3,
+      textAlign: 'center',
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    cancelBtn: {
+      backgroundColor: colors.redD,
+      borderWidth: 1.5,
+      borderColor: colors.red,
+      borderRadius: radius.md,
+      paddingVertical: 15,
+      alignItems: 'center',
+      marginHorizontal: 20,
+    },
+    cancelBtnText: { color: colors.red, fontWeight: '600', fontSize: 14 },
+    cancelErrorText: {
+      color: colors.red,
+      fontSize: font.sm,
+      textAlign: 'center',
+      marginTop: 8,
+      marginHorizontal: 20,
+    },
+    moreText: {
+      fontSize: 12,
+      color: colors.t3,
+      textAlign: 'center',
+      marginTop: 16,
+    },
+  })

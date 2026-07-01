@@ -10,9 +10,11 @@ import {
   ScrollView,
 } from 'react-native'
 import { useRouter, Link } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
-import { colors, radius, font } from '../../src/theme'
+import { radius, font } from '../../src/theme'
+import type { ThemeColors } from '../../src/theme'
+import { useTheme } from '../../src/context/ThemeContext'
 import { Flame, ArrowLeft } from 'lucide-react-native'
 
 interface Fields {
@@ -30,6 +32,8 @@ interface FieldErrors extends Partial<Record<keyof Fields, string>> {
 export default function RegisterScreen() {
   const { register } = useAuth()
   const router = useRouter()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [fields, setFields] = useState<Fields>({
     name: '',
@@ -215,6 +219,8 @@ function Field({
   error?: string
   children: React.ReactNode
 }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>{label}</Text>
@@ -224,74 +230,81 @@ function Field({
   )
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 20 },
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 20 },
 
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
-  backArrow: { fontSize: font.xl, color: colors.t2 },
-  backLabel: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
+    backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
+    backArrow: { fontSize: font.xl, color: colors.t2 },
+    backLabel: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
 
-  headerWrap: { alignItems: 'center', marginBottom: 28 },
-  logoBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: '#1E3D7A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  logoIcon: { fontSize: 24 },
-  title: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 4 },
-  subtitle: { fontSize: font.sm, color: colors.t2 },
+    headerWrap: { alignItems: 'center', marginBottom: 28 },
+    logoBox: {
+      width: 56,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: '#1E3D7A',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    logoIcon: { fontSize: 24 },
+    title: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 4 },
+    subtitle: { fontSize: font.sm, color: colors.t2 },
 
-  errorBanner: {
-    backgroundColor: colors.redD,
-    borderWidth: 1,
-    borderColor: colors.red,
-    borderRadius: radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorBannerText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
+    errorBanner: {
+      backgroundColor: colors.redD,
+      borderWidth: 1,
+      borderColor: colors.red,
+      borderRadius: radius.sm,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorBannerText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
 
-  fieldWrap: { marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '700', color: colors.t2, marginBottom: 6, letterSpacing: 0.8 },
-  input: {
-    backgroundColor: colors.s2,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    color: colors.text,
-    fontSize: font.md,
-  },
-  inputError: { borderColor: colors.red },
-  fieldError: { fontSize: 12, color: colors.red, marginTop: 4 },
+    fieldWrap: { marginBottom: 14 },
+    label: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      marginBottom: 6,
+      letterSpacing: 0.8,
+    },
+    input: {
+      backgroundColor: colors.s2,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 15,
+      paddingVertical: 14,
+      color: colors.text,
+      fontSize: font.md,
+    },
+    inputError: { borderColor: colors.red },
+    fieldError: { fontSize: 12, color: colors.red, marginTop: 4 },
 
-  passwordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
-  passwordInput: { flex: 1, color: colors.text, fontSize: font.md, paddingVertical: 14 },
-  showHide: { fontSize: 12, color: colors.blue, fontWeight: '600', paddingLeft: 8 },
+    passwordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
+    passwordInput: { flex: 1, color: colors.text, fontSize: font.md, paddingVertical: 14 },
+    showHide: { fontSize: 12, color: colors.blue, fontWeight: '600', paddingLeft: 8 },
 
-  btnPrimary: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.md,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  btnPrimaryText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
-  btnDisabled: { opacity: 0.6 },
+    btnPrimary: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.md,
+      paddingVertical: 18,
+      alignItems: 'center',
+      marginTop: 8,
+      shadowColor: colors.blue,
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    btnPrimaryText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
+    btnDisabled: { opacity: 0.6 },
 
-  terms: { fontSize: 11, color: colors.t3, textAlign: 'center', marginTop: 16, lineHeight: 18 },
-})
+    terms: { fontSize: 11, color: colors.t3, textAlign: 'center', marginTop: 16, lineHeight: 18 },
+  })

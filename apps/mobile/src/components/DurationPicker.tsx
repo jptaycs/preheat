@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native'
-import { colors, font, radius } from '../theme'
+import { font, radius } from '../theme'
+import type { ThemeColors } from '../theme'
+import { useTheme } from '../context/ThemeContext'
 
 const PRESETS = [10, 15, 20, 25, 30]
 
@@ -11,6 +13,8 @@ interface DurationPickerProps {
 }
 
 export function DurationPicker({ value, onChange, label }: DurationPickerProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [customMode, setCustomMode] = useState(false)
   const [customText, setCustomText] = useState('')
 
@@ -75,55 +79,56 @@ export function DurationPicker({ value, onChange, label }: DurationPickerProps) 
   )
 }
 
-const styles = StyleSheet.create({
-  container: { marginBottom: 14 },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.t2,
-    letterSpacing: 0.8,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  preset: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.s2,
-  },
-  presetActive: {
-    borderColor: colors.blue,
-    backgroundColor: colors.blueD,
-  },
-  presetText: { fontSize: font.sm, fontWeight: '700', color: colors.t2 },
-  presetTextActive: { color: colors.blue },
-  customRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-  },
-  customInput: {
-    flex: 1,
-    backgroundColor: colors.s2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: font.md,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  customUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
-  customBtn: {
-    backgroundColor: colors.blue,
-    borderRadius: radius.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  customBtnText: { color: '#fff', fontWeight: '700', fontSize: font.sm },
-})
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: { marginBottom: 14 },
+    label: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.t2,
+      letterSpacing: 0.8,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+    },
+    row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    preset: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: radius.sm,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.s2,
+    },
+    presetActive: {
+      borderColor: colors.blue,
+      backgroundColor: colors.blueD,
+    },
+    presetText: { fontSize: font.sm, fontWeight: '700', color: colors.t2 },
+    presetTextActive: { color: colors.blue },
+    customRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 10,
+    },
+    customInput: {
+      flex: 1,
+      backgroundColor: colors.s2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: font.md,
+      color: colors.text,
+      fontWeight: '700',
+    },
+    customUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
+    customBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: radius.sm,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    customBtnText: { color: '#fff', fontWeight: '700', fontSize: font.sm },
+  })

@@ -5,6 +5,7 @@ import { View, ActivityIndicator } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { AuthProvider, useAuth } from '../src/context/AuthContext'
 import { BadgeProvider } from '../src/context/BadgeContext'
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext'
 import { usePushNotifications } from '../src/hooks/usePushNotifications'
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus'
 import { OfflineBanner } from '../src/components/OfflineBanner'
@@ -21,6 +22,7 @@ if (SENTRY_DSN) {
 
 function Guard() {
   const { isAuthenticated, isLoading } = useAuth()
+  const { colors } = useTheme()
   usePushNotifications()
   const router = useRouter()
   const segments = useSegments()
@@ -42,12 +44,12 @@ function Guard() {
       <View
         style={{
           flex: 1,
-          backgroundColor: '#0A0F1E',
+          backgroundColor: colors.bg,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color={colors.blue} />
       </View>
     )
   }
@@ -57,8 +59,10 @@ function Guard() {
 
 function AppShell() {
   const { isOnline } = useNetworkStatus()
+  const { isLight } = useTheme()
   return (
     <View style={{ flex: 1 }}>
+      <StatusBar style={isLight ? 'dark' : 'light'} />
       <Guard />
       <OfflineBanner visible={!isOnline} />
     </View>
@@ -67,11 +71,12 @@ function AppShell() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <BadgeProvider>
-        <StatusBar style="light" />
-        <AppShell />
-      </BadgeProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BadgeProvider>
+          <AppShell />
+        </BadgeProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
