@@ -1,0 +1,9 @@
+node_modules
+dist
+.expo
+.turbo
+android
+.git
+*.apk
+*.html
+coverage
