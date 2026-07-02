@@ -28,4 +28,5 @@ COPY --from=installer /app .
 USER apiuser
 ENV NODE_ENV=production
 EXPOSE 4000
-CMD ["node", "services/api/dist/index.js"]
+# Migrations are idempotent; seed exits early when SEED_IF_EMPTY=true and data exists.
+CMD ["sh", "-c", "node services/api/dist/db/migrate.js && node services/api/dist/db/seed.js && node services/api/dist/index.js"]

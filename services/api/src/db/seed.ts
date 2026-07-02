@@ -25,6 +25,18 @@ const DEV_PILOT_AIRCRAFT = [
   { tailNumber: 'N441SR', type: 'Cirrus SR22' },
 ]
 
+// With SEED_IF_EMPTY=true (deployed environments), only seed a fresh database.
+// Without it (local dev), always run — devs use `pnpm db:seed` to reset state,
+// and re-running wipes the dev pilot's request history below.
+if (process.env.SEED_IF_EMPTY === 'true') {
+  const existing = await db.query(`SELECT 1 FROM users WHERE email = $1`, [DEV_USERS[0]!.email])
+  if ((existing.rowCount ?? 0) > 0) {
+    console.warn('Seed skipped: dev accounts already present.')
+    await db.end()
+    process.exit(0)
+  }
+}
+
 try {
   for (const u of DEV_USERS) {
     const hash = await hashPassword(u.password)

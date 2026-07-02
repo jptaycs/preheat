@@ -31,3 +31,5 @@ services:
         value: https://exp.host/--/api/v2/push/send
       - key: AIRPORT_ICAO
         value: KPAO
+      - key: SEED_IF_EMPTY
+        value: 'true'
