@@ -34,11 +34,6 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "jptayco1109@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
       "android": {
         "serviceAccountKeyPath": "./google-play-key.json",
         "track": "internal"
