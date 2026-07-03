@@ -25,7 +25,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0C0E14"
       },
-      "package": "com.preheat.app"
+      "package": "com.preheat.app",
+      "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]
     },
     "newArchEnabled": true,
     "scheme": "preheat",
@@ -42,11 +43,6 @@
       "expo-notifications",
       "@sentry/react-native/expo"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      }
-    },
     "hooks": {
       "postPublish": [
         {
@@ -57,6 +53,13 @@
           }
         }
       ]
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "121bde1f-6f83-4358-b729-88344f883166"
+      }
+    },
+    "owner": "jptaycs"
   }
 }
