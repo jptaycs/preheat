@@ -7,11 +7,20 @@ import { useCallback } from 'react'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { BellRing, XCircle, Flame, CheckCircle, Info, Zap, Bell } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
-import { font, radius } from '../../src/theme'
+import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
 import { useBadge } from '../../src/context/BadgeContext'
 import { useAuth } from '../../src/context/AuthContext'
+import {
+  Card,
+  LargeTitle,
+  ListGroup,
+  ListRow,
+  SectionHeader,
+  toneFg,
+} from '../../src/components/ui'
+import type { Tone } from '../../src/components/ui'
 
 type AlertType =
   | 'confirm_reminder'
@@ -30,15 +39,13 @@ interface AlertItem {
   urgent?: boolean
 }
 
-const getAlertStyle = (
-  colors: ThemeColors,
-): Record<AlertType, { Icon: LucideIcon; color: string; bg: string }> => ({
-  confirm_reminder: { Icon: BellRing, color: colors.red, bg: colors.redD },
-  slot_cancelled: { Icon: XCircle, color: colors.red, bg: colors.redD },
-  session_started: { Icon: Flame, color: colors.orange, bg: colors.orangeD },
-  session_completed: { Icon: CheckCircle, color: colors.green, bg: colors.greenD },
-  info: { Icon: Info, color: colors.blue, bg: colors.blueD },
-})
+const ALERT_STYLE: Record<AlertType, { Icon: LucideIcon; tone: Tone }> = {
+  confirm_reminder: { Icon: BellRing, tone: 'red' },
+  slot_cancelled: { Icon: XCircle, tone: 'red' },
+  session_started: { Icon: Flame, tone: 'orange' },
+  session_completed: { Icon: CheckCircle, tone: 'green' },
+  info: { Icon: Info, tone: 'blue' },
+}
 
 function fmtRelative(date: Date): string {
   const diffMs = Date.now() - date.getTime()
@@ -77,7 +84,6 @@ export default function AlertsScreen() {
   const { user } = useAuth()
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
-  const ALERT_STYLE = useMemo(() => getAlertStyle(colors), [colors])
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS)
   const { incAlertBadge, clearAlertBadge } = useBadge()
 
@@ -158,20 +164,22 @@ export default function AlertsScreen() {
   const olderAlerts = alerts.filter((a) => !isToday(a.timestamp) && !a.urgent)
   const hasUnread = alerts.some((a) => a.unread)
 
-  function renderAlertItem(item: AlertItem) {
+  function renderAlertRow(item: AlertItem) {
     const style = ALERT_STYLE[item.type]
     return (
-      <View style={styles.nItem}>
-        <View style={[styles.nIconBox, { backgroundColor: style.bg }]}>
-          <style.Icon size={17} color={style.color} />
-        </View>
-        <View style={styles.nBody}>
-          <Text style={styles.nTitle}>{item.title}</Text>
-          <Text style={styles.nMsg}>{item.body}</Text>
-          <Text style={styles.nTime}>{fmtRelative(item.timestamp)}</Text>
-        </View>
-        {item.unread && <View style={[styles.nDot, { backgroundColor: style.color }]} />}
-      </View>
+      <ListRow
+        key={item.id}
+        icon={style.Icon}
+        tone={style.tone}
+        title={item.title}
+        subtitle={item.body}
+        value={fmtRelative(item.timestamp)}
+        trailing={
+          item.unread ? (
+            <View style={[styles.nDot, { backgroundColor: toneFg(colors, style.tone) }]} />
+          ) : undefined
+        }
+      />
     )
   }
 
@@ -179,16 +187,20 @@ export default function AlertsScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.headerBar}>
-        <Text style={styles.screenTitle}>Notifications</Text>
-        {hasUnread && (
-          <TouchableOpacity
-            onPress={markAllRead}
-            accessibilityRole="button"
-            accessibilityLabel="Mark all notifications as read"
-          >
-            <Text style={styles.markReadBtn}>Mark all read</Text>
-          </TouchableOpacity>
-        )}
+        <LargeTitle
+          title="Notifications"
+          trailing={
+            hasUnread ? (
+              <TouchableOpacity
+                onPress={markAllRead}
+                accessibilityRole="button"
+                accessibilityLabel="Mark all notifications as read"
+              >
+                <Text style={styles.markReadBtn}>Mark all read</Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        />
       </View>
 
       {alerts.length === 0 ? (
@@ -207,43 +219,50 @@ export default function AlertsScreen() {
             return (
               <TouchableOpacity
                 key={alertItem.id}
-                style={styles.urgentCard}
                 onPress={() => router.push('/(app)/confirm')}
                 accessibilityRole="button"
                 accessibilityLabel={`Urgent: ${alertItem.title}. Tap to respond.`}
               >
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}
-                >
-                  <Zap size={12} color={colors.red} />
-                  <Text style={styles.urgentLabel}>URGENT — TAP TO RESPOND</Text>
-                </View>
-                <View style={styles.nItem}>
-                  <View style={[styles.nIconBox, { backgroundColor: s.bg }]}>
-                    <s.Icon size={17} color={s.color} />
+                <Card style={styles.urgentCard}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}
+                  >
+                    <Zap size={12} color={colors.red} />
+                    <Text style={styles.urgentLabel}>URGENT — TAP TO RESPOND</Text>
                   </View>
-                  <View style={styles.nBody}>
-                    <Text style={styles.nTitle}>{alertItem.title}</Text>
-                    <Text style={styles.nMsg}>{alertItem.body}</Text>
-                    <Text style={styles.nTime}>{fmtRelative(alertItem.timestamp)}</Text>
-                  </View>
-                  <View style={[styles.nDot, { backgroundColor: colors.red }]} />
-                </View>
+                  <ListRow
+                    icon={s.Icon}
+                    tone={s.tone}
+                    title={alertItem.title}
+                    subtitle={alertItem.body}
+                    value={fmtRelative(alertItem.timestamp)}
+                    trailing={<View style={[styles.nDot, { backgroundColor: colors.red }]} />}
+                    style={{ paddingHorizontal: 0, paddingVertical: 0 }}
+                  />
+                </Card>
               </TouchableOpacity>
             )
           })}
 
           {/* Today */}
-          {todayAlerts.length > 0 && <Text style={styles.sectionLabel}>Today</Text>}
-          {todayAlerts.map((a) => (
-            <React.Fragment key={a.id}>{renderAlertItem(a)}</React.Fragment>
-          ))}
+          {todayAlerts.length > 0 && (
+            <>
+              <SectionHeader title="Today" style={styles.sectionLabel} />
+              <ListGroup style={styles.group}>
+                {todayAlerts.map((a) => renderAlertRow(a))}
+              </ListGroup>
+            </>
+          )}
 
           {/* Earlier */}
-          {olderAlerts.length > 0 && <Text style={styles.sectionLabel}>Earlier</Text>}
-          {olderAlerts.map((a) => (
-            <React.Fragment key={a.id}>{renderAlertItem(a)}</React.Fragment>
-          ))}
+          {olderAlerts.length > 0 && (
+            <>
+              <SectionHeader title="Earlier" style={styles.sectionLabel} />
+              <ListGroup style={styles.group}>
+                {olderAlerts.map((a) => renderAlertRow(a))}
+              </ListGroup>
+            </>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -253,36 +272,21 @@ export default function AlertsScreen() {
 const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
-    headerBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 20,
-      paddingBottom: 12,
-    },
-    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-    markReadBtn: { fontSize: 12, color: colors.blue, fontWeight: '600' },
-    listContent: { padding: 16, paddingBottom: 40 },
+    headerBar: { paddingHorizontal: 20, paddingTop: 10 },
+    markReadBtn: { fontSize: 13, color: colors.blue, fontWeight: '600' },
+    listContent: { padding: 16, paddingBottom: 100 },
 
     // Section label
-    sectionLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 0.8,
-      textTransform: 'uppercase',
-      color: colors.t3,
-      marginTop: 12,
-      marginBottom: 4,
-    },
+    sectionLabel: { marginTop: 12, marginLeft: 0 },
+    group: { marginBottom: 4 },
 
     // Urgent card
     urgentCard: {
-      backgroundColor: 'rgba(240,82,82,0.07)',
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.redD,
+      backgroundColor: colors.redD,
       padding: 12,
       marginBottom: 12,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     urgentLabel: {
       fontSize: 10,
@@ -292,37 +296,14 @@ const makeStyles = (colors: ThemeColors) =>
       color: colors.red,
     },
 
-    // Notification item
-    nItem: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-      paddingVertical: 13,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    nIconBox: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    nIcon: { fontSize: 17 },
-    nBody: { flex: 1 },
-    nTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
-    nMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
-    nTime: { fontSize: 11, color: colors.t3, marginTop: 3 },
     nDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
-      marginTop: 4,
     },
 
     // Empty
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    emptyIcon: { fontSize: 48, marginBottom: 16 },
     emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
     emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
   })

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { Audio, type AVPlaybackSource } from 'expo-av'
 import { Clock, Pencil } from 'lucide-react-native'
-import { font, radius } from '../theme'
+import { font } from '../theme'
 import type { ThemeColors } from '../theme'
 import { useTheme } from '../context/ThemeContext'
 
@@ -147,7 +147,7 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.s2,
       gap: 4,
     },
-    time: { fontSize: 28, fontWeight: '900', textAlign: 'center' },
+    time: { fontSize: 28, fontWeight: '700', textAlign: 'center' },
     timeExpired: { fontSize: 18 },
     label: { fontSize: 11, color: colors.t2, fontWeight: '600' },
     editBtn: {
@@ -157,9 +157,7 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: 12,
       paddingHorizontal: 14,
       paddingVertical: 8,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: 12,
       backgroundColor: colors.s2,
     },
     editText: { fontSize: font.sm, color: colors.blue, fontWeight: '600' },

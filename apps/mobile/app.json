@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0C0E14"
+      "backgroundColor": "#262624"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0C0E14"
+        "backgroundColor": "#262624"
       },
       "package": "com.preheat.app",
       "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]

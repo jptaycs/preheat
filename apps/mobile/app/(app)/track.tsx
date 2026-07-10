@@ -20,9 +20,10 @@ import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { ArrowLeft, RefreshCw, CheckCircle, Plane, Wrench, Clock, Check } from 'lucide-react-native'
 import { DurationPicker } from '../../src/components/DurationPicker'
 import { CountdownTimer } from '../../src/components/CountdownTimer'
-import { font, radius } from '../../src/theme'
+import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
+import { Card, Button, SectionHeader } from '../../src/components/ui'
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function HeatGauge({ tempC, session }: { tempC: number | null; session?: Session
   const displayTemp = tempC !== null ? `${Number(tempC).toFixed(0)}°C` : '--'
 
   return (
-    <View style={styles.gaugeCard}>
+    <Card style={styles.gaugeCard}>
       <View style={styles.gaugePillRow}>
         <View style={styles.gaugePill}>
           <View style={[styles.gaugePillDot, { backgroundColor: colors.orange }]} />
@@ -89,7 +90,7 @@ function HeatGauge({ tempC, session }: { tempC: number | null; session?: Session
           </Text>
         </View>
       </View>
-    </View>
+    </Card>
   )
 }
 
@@ -99,7 +100,7 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
   const readings = [...session.readings].reverse()
   return (
     <View style={styles.timelineSection}>
-      <Text style={styles.sectionTitle}>PROGRESS TIMELINE</Text>
+      <SectionHeader title="Progress timeline" />
 
       {/* Start */}
       <View style={styles.tlItem}>
@@ -111,7 +112,7 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
         </View>
         <View style={styles.tlBody}>
           <Text style={styles.tlTime}>{fmtTimeShort(session.startedAt)}</Text>
-          <View style={[styles.tlCard, { borderColor: colors.greenD }]}>
+          <View style={styles.tlCard}>
             <View style={styles.tlCardRow}>
               <Text style={styles.tlCardTitle}>Session Started</Text>
               <View style={[styles.tlBadge, { backgroundColor: colors.greenD }]}>
@@ -143,7 +144,7 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
             </View>
             <View style={styles.tlBody}>
               <Text style={styles.tlTime}>{fmtTimeShort(r.recordedAt)}</Text>
-              <View style={[styles.tlCard, isLatest && { borderColor: colors.orange }]}>
+              <View style={styles.tlCard}>
                 <View style={styles.tlCardRow}>
                   <Text style={styles.tlCardTitle}>
                     Temperature: {Number(r.tempCelsius).toFixed(1)}°C
@@ -171,7 +172,7 @@ function SessionTimeline({ session }: { session: SessionDetail }) {
           </View>
           <View style={styles.tlBody}>
             <Text style={styles.tlTime}>{fmtTimeShort(session.completedAt)}</Text>
-            <View style={[styles.tlCard, { borderColor: colors.greenD }]}>
+            <View style={styles.tlCard}>
               <View style={styles.tlCardRow}>
                 <Text style={styles.tlCardTitle}>Preheat Complete</Text>
                 <View style={[styles.tlBadge, { backgroundColor: colors.greenD }]}>
@@ -394,16 +395,18 @@ function MechanicTrack({
       <Text style={styles.headerSub}>{tailNumber} · Live Status</Text>
 
       {/* Aircraft info card */}
-      <View style={styles.aircraftInfoCard}>
+      <Card style={styles.aircraftInfoCard}>
         <Text style={styles.aircraftTail}>{tailNumber}</Text>
         {!!aircraftType && <Text style={styles.aircraftTypeText}>{aircraftType}</Text>}
         {!!pilotName && <Text style={styles.pilotNameText}>Pilot: {pilotName}</Text>}
-      </View>
+      </Card>
 
       {error && (
-        <TouchableOpacity style={styles.errorBox} onPress={() => setError(null)}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.retryText}>Tap to dismiss</Text>
+        <TouchableOpacity onPress={() => setError(null)}>
+          <Card style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.retryText}>Tap to dismiss</Text>
+          </Card>
         </TouchableOpacity>
       )}
 
@@ -414,11 +417,11 @@ function MechanicTrack({
         </View>
       ) : session?.completedAt ? (
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.completeCard}>
+          <Card style={styles.completeCard}>
             <CheckCircle size={40} color={colors.green} />
             <Text style={styles.completeTitle}>Preheat Complete!</Text>
             <Text style={styles.completeBody}>{tailNumber} is ready for the pilot.</Text>
-          </View>
+          </Card>
           <SessionTimeline session={session} />
         </ScrollView>
       ) : session ? (
@@ -436,24 +439,24 @@ function MechanicTrack({
             />
 
             {timerExpired && (
-              <View style={styles.expiredBanner}>
+              <Card style={styles.expiredBanner}>
                 <Text style={styles.expiredText}>Timer is up! Check the aircraft temperature.</Text>
-              </View>
+              </Card>
             )}
 
             {editingDuration && (
-              <View style={styles.editDurationCard}>
-                <Text style={styles.editDurationTitle}>ADJUST TIMER</Text>
+              <Card style={styles.editDurationCard}>
+                <SectionHeader title="Adjust timer" />
                 <DurationPicker value={duration} onChange={setDuration} />
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                  <TouchableOpacity
-                    style={styles.editDurationCancel}
+                  <Button
+                    title="Cancel"
+                    variant="secondary"
                     onPress={() => setEditingDuration(false)}
-                  >
-                    <Text style={styles.editDurationCancelText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.editDurationSave}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="Save"
                     onPress={() => {
                       if (session) {
                         void sessionsApi.updateDuration(session.id, duration).then(() => {
@@ -462,18 +465,17 @@ function MechanicTrack({
                         })
                       }
                     }}
-                  >
-                    <Text style={styles.editDurationSaveText}>Save</Text>
-                  </TouchableOpacity>
+                    style={{ flex: 1 }}
+                  />
                 </View>
-              </View>
+              </Card>
             )}
 
             <HeatGauge tempC={session.currentTempCelsius} session={session} />
 
             {/* Temperature input */}
-            <View style={styles.tempInputCard}>
-              <Text style={styles.tempInputLabel}>LOG TEMPERATURE READING</Text>
+            <Card style={styles.tempInputCard}>
+              <SectionHeader title="Log temperature reading" />
               <View style={styles.tempInputRow}>
                 <TextInput
                   style={styles.tempInput}
@@ -500,25 +502,16 @@ function MechanicTrack({
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </Card>
 
-            <TouchableOpacity
-              style={[styles.completeBtn, completing && styles.btnDisabled]}
+            <Button
+              title="Complete Session"
+              tone="green"
+              icon={Check}
+              loading={completing}
               onPress={() => void handleComplete()}
-              disabled={completing}
-              accessibilityRole="button"
-              accessibilityLabel="Mark preheat session as complete"
-              accessibilityState={{ disabled: completing, busy: completing }}
-            >
-              {completing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Check size={18} color="#fff" />
-                  <Text style={styles.completeBtnText}>Complete Session</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              style={styles.completeBtn}
+            />
 
             {session.readings.length > 0 && <SessionTimeline session={session} />}
           </ScrollView>
@@ -530,21 +523,13 @@ function MechanicTrack({
           <Text style={styles.emptyBody}>
             {tailNumber} is confirmed. Tap Start when you're at the aircraft.
           </Text>
-          <DurationPicker label="PREHEAT DURATION" value={duration} onChange={setDuration} />
-          <TouchableOpacity
-            style={[styles.startBtn, starting && styles.btnDisabled]}
+          <DurationPicker label="Preheat duration" value={duration} onChange={setDuration} />
+          <Button
+            title="Start Preheat"
+            loading={starting}
             onPress={() => void handleStart()}
-            disabled={starting}
-            accessibilityRole="button"
-            accessibilityLabel={`Start preheat for ${tailNumber}`}
-            accessibilityState={{ disabled: starting, busy: starting }}
-          >
-            {starting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.startBtnText}>Start Preheat</Text>
-            )}
-          </TouchableOpacity>
+            style={styles.startBtn}
+          />
         </View>
       )}
     </SafeAreaView>
@@ -669,30 +654,32 @@ function PilotTrack({ requestId }: { requestId?: string }) {
           <Text style={styles.loadingText}>Loading session data...</Text>
         </View>
       ) : error ? (
-        <View style={styles.errorBox}>
+        <Card style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={() => void fetchSession()}>
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
-        </View>
+        </Card>
       ) : !activeRequest ? (
         <View style={styles.emptyState}>
           <Plane size={56} color={colors.blue} />
           <Text style={styles.emptyTitle}>No active preheat</Text>
           <Text style={styles.emptyBody}>Request a preheat to see live session tracking here.</Text>
-          <TouchableOpacity style={styles.startBtn} onPress={() => router.push('/(app)/request')}>
-            <Text style={styles.startBtnText}>Request Preheat</Text>
-          </TouchableOpacity>
+          <Button
+            title="Request Preheat"
+            onPress={() => router.push('/(app)/request')}
+            style={styles.startBtn}
+          />
         </View>
       ) : sessionComplete || session?.completedAt ? (
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.completeCard}>
+          <Card style={styles.completeCard}>
             <CheckCircle size={40} color={colors.green} />
             <Text style={styles.completeTitle}>Preheat Complete!</Text>
             <Text style={styles.completeBody}>
               Your aircraft {activeRequest.tailNumber ?? ''} is ready.
             </Text>
-          </View>
+          </Card>
           {session && <SessionTimeline session={session} />}
         </ScrollView>
       ) : (
@@ -706,11 +693,11 @@ function PilotTrack({ requestId }: { requestId?: string }) {
           )}
 
           {timerExpired && (
-            <View style={styles.expiredBanner}>
+            <Card style={styles.expiredBanner}>
               <Text style={styles.expiredText}>
                 Preheat time is up! Your aircraft should be ready soon.
               </Text>
-            </View>
+            </Card>
           )}
 
           {session ? (
@@ -718,7 +705,7 @@ function PilotTrack({ requestId }: { requestId?: string }) {
               <HeatGauge tempC={session.currentTempCelsius} session={session} />
 
               {/* Info card */}
-              <View style={styles.infoCard}>
+              <Card style={styles.infoCard}>
                 <View style={styles.infoRow}>
                   <View>
                     <Text style={styles.infoCardSectionLabel}>ESTIMATED COMPLETION</Text>
@@ -735,19 +722,19 @@ function PilotTrack({ requestId }: { requestId?: string }) {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </Card>
 
               <SessionTimeline session={session} />
             </>
           ) : (
-            <View style={styles.waitingCard}>
+            <Card style={styles.waitingCard}>
               <Clock size={32} color={colors.t2} />
               <Text style={styles.waitingTitle}>Waiting for mechanic</Text>
               <Text style={styles.waitingText}>
                 Your preheat session hasn't started yet. You'll see live updates here once the
                 mechanic begins.
               </Text>
-            </View>
+            </Card>
           )}
         </ScrollView>
       )}
@@ -768,9 +755,8 @@ const makeStyles = (colors: ThemeColors) =>
       paddingTop: 8,
       paddingBottom: 4,
     },
-    backBtn: { fontSize: 20, color: colors.t2 },
-    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-    refreshBtn: { fontSize: 20, color: colors.blue },
+    backBtn: { fontSize: 15, color: colors.t2, fontWeight: '600' },
+    screenTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
     headerSub: {
       fontSize: 13,
       color: colors.t2,
@@ -780,33 +766,28 @@ const makeStyles = (colors: ThemeColors) =>
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     loadingText: { color: colors.t2, fontSize: font.base },
     errorBox: {
-      margin: 20,
+      marginHorizontal: 20,
+      marginBottom: 12,
       backgroundColor: colors.redD,
-      borderRadius: radius.md,
-      padding: 16,
       alignItems: 'center',
+      shadowOpacity: 0,
+      elevation: 0,
     },
     errorText: { color: colors.red, fontSize: font.base, marginBottom: 6 },
     retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.sm },
-    content: { padding: 20, paddingBottom: 40 },
+    content: { padding: 20, paddingBottom: 100 },
 
     // Aircraft info (mechanic)
     aircraftInfoCard: {
       marginHorizontal: 20,
-      marginBottom: 4,
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
+      marginBottom: 12,
     },
-    aircraftTail: { fontSize: font.xxl, fontWeight: '800', color: colors.text },
+    aircraftTail: { fontSize: font.xxl, fontWeight: '700', color: colors.text },
     aircraftTypeText: { fontSize: font.base, color: colors.t2, marginTop: 2 },
     pilotNameText: { fontSize: font.sm, color: colors.t3, marginTop: 4 },
 
     // Empty / start
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    emptyIcon: { fontSize: 56, marginBottom: 16 },
     emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
     emptyBody: {
       fontSize: font.base,
@@ -815,33 +796,13 @@ const makeStyles = (colors: ThemeColors) =>
       lineHeight: 22,
       marginBottom: 24,
     },
-    startBtn: {
-      backgroundColor: colors.blue,
-      borderRadius: radius.md,
-      paddingVertical: 14,
-      paddingHorizontal: 28,
-      alignItems: 'center',
-      minWidth: 200,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
-      elevation: 4,
-    },
-    startBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
+    startBtn: { minWidth: 200, marginTop: 8 },
 
     // Gauge card
     gaugeCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.lg,
-      borderWidth: 1.5,
-      borderColor: colors.orange,
-      padding: 22,
-      marginBottom: 14,
       alignItems: 'center',
-      shadowColor: colors.orange,
-      shadowOpacity: 0.1,
-      shadowRadius: 12,
-      elevation: 3,
+      marginBottom: 14,
+      paddingVertical: 22,
     },
     gaugePillRow: { marginBottom: 16 },
     gaugePill: {
@@ -880,7 +841,7 @@ const makeStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       backgroundColor: colors.s2,
     },
-    gaugePercent: { fontSize: 30, fontWeight: '900', color: colors.orange },
+    gaugePercent: { fontSize: 30, fontWeight: '700', color: colors.orange },
     gaugeLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
     tempGrid: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
     tempGridItem: { flex: 1, alignItems: 'center' },
@@ -891,31 +852,15 @@ const makeStyles = (colors: ThemeColors) =>
       letterSpacing: 0.6,
       fontWeight: '700',
     },
-    tempGridValue: { fontSize: 15, fontWeight: '800', color: colors.text, marginTop: 2 },
+    tempGridValue: { fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 2 },
 
     // Temperature input (mechanic)
-    tempInputCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-      marginBottom: 12,
-    },
-    tempInputLabel: {
-      fontSize: 11,
-      color: colors.t2,
-      fontWeight: '700',
-      letterSpacing: 0.6,
-      marginBottom: 10,
-    },
-    tempInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    tempInputCard: { marginBottom: 12 },
+    tempInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
     tempInput: {
       flex: 1,
       backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: 12,
       paddingHorizontal: 12,
       paddingVertical: 10,
       fontSize: font.md,
@@ -925,7 +870,7 @@ const makeStyles = (colors: ThemeColors) =>
     tempUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
     logBtn: {
       backgroundColor: colors.blue,
-      borderRadius: radius.sm,
+      borderRadius: 12,
       paddingHorizontal: 20,
       paddingVertical: 12,
       alignItems: 'center',
@@ -934,39 +879,23 @@ const makeStyles = (colors: ThemeColors) =>
     logBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
 
     // Complete button
-    completeBtn: {
-      backgroundColor: colors.green,
-      borderRadius: radius.md,
-      paddingVertical: 14,
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    completeBtnText: { color: '#fff', fontWeight: '800', fontSize: font.base },
+    completeBtn: { marginBottom: 24 },
     btnDisabled: { opacity: 0.5 },
 
     // Complete card
     completeCard: {
       backgroundColor: colors.greenD,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.green,
-      padding: 28,
       alignItems: 'center',
+      paddingVertical: 28,
       marginBottom: 24,
+      shadowOpacity: 0,
+      elevation: 0,
     },
-    completeIcon: { fontSize: 40, marginBottom: 12 },
-    completeTitle: { fontSize: font.xl, fontWeight: '800', color: colors.green, marginBottom: 8 },
+    completeTitle: { fontSize: font.xl, fontWeight: '700', color: colors.green, marginBottom: 8 },
     completeBody: { fontSize: font.base, color: colors.text, textAlign: 'center' },
 
     // Info card (pilot)
-    infoCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-      marginBottom: 20,
-    },
+    infoCard: { marginBottom: 20 },
     infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
     infoCardSectionLabel: {
       fontSize: 10,
@@ -975,34 +904,24 @@ const makeStyles = (colors: ThemeColors) =>
       letterSpacing: 0.6,
       marginBottom: 3,
     },
-    infoCardValue: { fontSize: 22, fontWeight: '800', color: colors.green },
+    infoCardValue: { fontSize: 22, fontWeight: '700', color: colors.green },
     infoCardSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
     infoCardSmallLabel: { fontSize: 11, color: colors.t3 },
     infoCardSmallValue: { fontSize: 14, fontWeight: '700', marginTop: 2 },
 
     // Waiting card (pilot)
-    waitingCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderColor: colors.border,
-      borderWidth: 1,
-      padding: 24,
-      alignItems: 'center',
+    waitingCard: { alignItems: 'center', paddingVertical: 24 },
+    waitingTitle: {
+      fontSize: font.md,
+      fontWeight: '700',
+      color: colors.text,
+      marginTop: 10,
+      marginBottom: 6,
     },
-    waitingIcon: { fontSize: 32, marginBottom: 10 },
-    waitingTitle: { fontSize: font.md, fontWeight: '700', color: colors.text, marginBottom: 6 },
     waitingText: { color: colors.t2, fontSize: font.base, textAlign: 'center', lineHeight: 22 },
 
     // Timeline
     timelineSection: { marginTop: 4 },
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: colors.t3,
-      marginBottom: 16,
-    },
     tlItem: { flexDirection: 'row', gap: 12 },
     tlLeft: { alignItems: 'center', width: 32 },
     tlDot: {
@@ -1025,9 +944,7 @@ const makeStyles = (colors: ThemeColors) =>
     },
     tlCard: {
       backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: 14,
       padding: 11,
     },
     tlCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -1043,47 +960,13 @@ const makeStyles = (colors: ThemeColors) =>
     // Expired banner
     expiredBanner: {
       backgroundColor: colors.redD,
-      borderWidth: 1,
-      borderColor: colors.red,
-      borderRadius: radius.md,
-      padding: 14,
-      marginBottom: 14,
       alignItems: 'center',
+      marginBottom: 14,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     expiredText: { color: colors.red, fontWeight: '700', fontSize: font.base },
 
     // Edit duration card (mechanic)
-    editDurationCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.blue,
-      padding: 16,
-      marginBottom: 14,
-    },
-    editDurationTitle: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.t2,
-      letterSpacing: 0.8,
-      marginBottom: 12,
-      textTransform: 'uppercase',
-    },
-    editDurationCancel: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radius.sm,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    editDurationCancelText: { color: colors.t2, fontWeight: '600' },
-    editDurationSave: {
-      flex: 1,
-      backgroundColor: colors.blue,
-      borderRadius: radius.sm,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    editDurationSaveText: { color: '#fff', fontWeight: '700' },
+    editDurationCard: { marginBottom: 14 },
   })

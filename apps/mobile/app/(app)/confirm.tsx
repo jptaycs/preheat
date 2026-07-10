@@ -12,9 +12,10 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { PreheatRequest } from '../../src/lib/api'
 import { AlertTriangle, Flame, Plane, CheckCircle, XCircle, Check } from 'lucide-react-native'
-import { font, radius } from '../../src/theme'
+import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
+import { Card, Button, IconGlyph } from '../../src/components/ui'
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
@@ -170,7 +171,7 @@ export default function ConfirmScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.errorBox}>
+        <Card style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             onPress={() => void fetchPending()}
@@ -179,7 +180,7 @@ export default function ConfirmScreen() {
           >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
-        </View>
+        </Card>
       </SafeAreaView>
     )
   }
@@ -207,9 +208,7 @@ export default function ConfirmScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.confirmedWrap}>
-          <View style={styles.confirmedCircle}>
-            <Check size={36} color={colors.green} />
-          </View>
+          <IconGlyph icon={Check} tone="green" size={80} />
           <Text style={styles.confirmedTitle}>Confirmed!</Text>
           <Text style={styles.confirmedBody}>
             Your preheat slot for {req.tailNumber} is secured.
@@ -224,9 +223,7 @@ export default function ConfirmScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Dramatic red header */}
         <View style={styles.redHeader}>
-          <View style={styles.warningCircle}>
-            <AlertTriangle size={36} color={colors.red} />
-          </View>
+          <IconGlyph icon={AlertTriangle} tone="red" size={72} />
           <Text style={styles.actionLabel}>ACTION REQUIRED</Text>
           <Text style={styles.headerTitle}>Confirm Your{'\n'}Flight Attendance</Text>
           <Text style={styles.headerSub}>
@@ -238,7 +235,7 @@ export default function ConfirmScreen() {
         <CountdownRing deadline={req.confirmDeadline} />
 
         {/* Flight summary card */}
-        <View style={styles.summaryCard}>
+        <Card style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTail}>{req.tailNumber ?? '—'}</Text>
             <View style={styles.queueBadge}>
@@ -263,7 +260,7 @@ export default function ConfirmScreen() {
               <Text style={styles.gridValue}>{fmtTime(req.engineStartTime)}</Text>
             </View>
           </View>
-        </View>
+        </Card>
 
         {/* Warning alert */}
         <View style={styles.warningAlert}>
@@ -278,23 +275,13 @@ export default function ConfirmScreen() {
         </View>
 
         {/* Confirm button */}
-        <TouchableOpacity
-          style={[styles.confirmBtn, isConfirming && styles.confirmBtnDisabled]}
+        <Button
+          title="I'm Arriving — Confirm"
+          icon={CheckCircle}
+          loading={isConfirming}
           onPress={() => void handleConfirm(req)}
-          disabled={isConfirming}
-          accessibilityRole="button"
-          accessibilityLabel={`Confirm attendance for ${req.tailNumber ?? 'aircraft'}`}
-          accessibilityState={{ disabled: isConfirming, busy: isConfirming }}
-        >
-          {isConfirming ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <CheckCircle size={18} color="#fff" />
-              <Text style={styles.confirmBtnText}>I'm Arriving — Confirm</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+          style={styles.confirmBtn}
+        />
 
         {/* Cancel section */}
         <Text style={styles.cancelHint}>I won't be able to make it</Text>
@@ -336,38 +323,27 @@ const makeStyles = (colors: ThemeColors) =>
     errorBox: {
       margin: 20,
       backgroundColor: colors.redD,
-      borderRadius: radius.md,
-      padding: 20,
       alignItems: 'center',
+      shadowOpacity: 0,
+      elevation: 0,
     },
     errorText: { color: colors.red, fontSize: font.base, marginBottom: 10, textAlign: 'center' },
     retryText: { color: colors.red, textDecorationLine: 'underline', fontSize: font.base },
 
     // Empty
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    emptyIcon: { fontSize: 48, marginBottom: 16 },
     emptyTitle: { fontSize: font.xl, fontWeight: '700', color: colors.text, marginBottom: 8 },
     emptyBody: { fontSize: font.base, color: colors.t2, textAlign: 'center', lineHeight: 22 },
 
     // Confirmed animation
-    confirmedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    confirmedCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: colors.greenD,
-      borderWidth: 3,
-      borderColor: colors.green,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 20,
-      shadowColor: colors.green,
-      shadowOpacity: 0.4,
-      shadowRadius: 16,
-      elevation: 8,
+    confirmedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 4 },
+    confirmedTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.green,
+      marginTop: 16,
+      marginBottom: 8,
     },
-    confirmedIcon: { fontSize: 36, color: colors.green },
-    confirmedTitle: { fontSize: 24, fontWeight: '800', color: colors.green, marginBottom: 8 },
     confirmedBody: { fontSize: font.base, color: colors.t2, textAlign: 'center' },
 
     // Red header
@@ -376,22 +352,8 @@ const makeStyles = (colors: ThemeColors) =>
       paddingTop: 28,
       paddingBottom: 0,
       paddingHorizontal: 20,
+      gap: 4,
     },
-    warningCircle: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: colors.redD,
-      borderWidth: 3,
-      borderColor: colors.red,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: colors.red,
-      shadowOpacity: 0.4,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    warningIcon: { fontSize: 36 },
     actionLabel: {
       fontSize: 11,
       fontWeight: '700',
@@ -402,7 +364,7 @@ const makeStyles = (colors: ThemeColors) =>
     },
     headerTitle: {
       fontSize: 21,
-      fontWeight: '800',
+      fontWeight: '700',
       color: colors.text,
       textAlign: 'center',
       marginTop: 6,
@@ -435,17 +397,12 @@ const makeStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       backgroundColor: colors.bg,
     },
-    ringNum: { fontSize: 28, fontWeight: '900', lineHeight: 32 },
+    ringNum: { fontSize: 28, fontWeight: '700', lineHeight: 32 },
     ringLabel: { fontSize: 11, color: colors.t2, fontWeight: '600', marginTop: 2 },
     ringHint: { fontSize: 12, color: colors.t3, marginTop: 8 },
 
     // Summary card
     summaryCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 18,
       marginHorizontal: 20,
       marginBottom: 14,
     },
@@ -455,7 +412,7 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       marginBottom: 10,
     },
-    summaryTail: { fontSize: 22, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    summaryTail: { fontSize: 22, fontWeight: '700', color: colors.text, letterSpacing: -0.5 },
     queueBadge: {
       backgroundColor: colors.orangeD,
       paddingHorizontal: 8,
@@ -475,7 +432,7 @@ const makeStyles = (colors: ThemeColors) =>
       letterSpacing: 0.6,
       marginBottom: 3,
     },
-    gridValue: { fontSize: 17, fontWeight: '800', color: colors.text },
+    gridValue: { fontSize: 17, fontWeight: '600', color: colors.text },
 
     // Warning alert
     warningAlert: {
@@ -483,31 +440,16 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'flex-start',
       gap: 11,
       backgroundColor: colors.redD,
-      borderWidth: 1,
-      borderColor: colors.red,
-      borderRadius: radius.md,
+      borderRadius: 16,
       padding: 13,
       marginHorizontal: 20,
       marginBottom: 18,
     },
-    warningAlertIcon: { fontSize: 18, marginTop: 1 },
     warningAlertTitle: { fontSize: 13, fontWeight: '700', color: colors.red, marginBottom: 2 },
     warningAlertMsg: { fontSize: 12, color: colors.t2, lineHeight: 18 },
 
     // Buttons
-    confirmBtn: {
-      backgroundColor: colors.blue,
-      borderRadius: radius.md,
-      paddingVertical: 20,
-      alignItems: 'center',
-      marginHorizontal: 20,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.4,
-      shadowRadius: 14,
-      elevation: 6,
-    },
-    confirmBtnDisabled: { opacity: 0.6 },
-    confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 17 },
+    confirmBtn: { marginHorizontal: 20 },
     cancelHint: {
       fontSize: 12,
       color: colors.t3,
@@ -517,9 +459,7 @@ const makeStyles = (colors: ThemeColors) =>
     },
     cancelBtn: {
       backgroundColor: colors.redD,
-      borderWidth: 1.5,
-      borderColor: colors.red,
-      borderRadius: radius.md,
+      borderRadius: 18,
       paddingVertical: 15,
       alignItems: 'center',
       marginHorizontal: 20,

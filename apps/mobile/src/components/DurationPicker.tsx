@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native'
-import { font, radius } from '../theme'
+import { font } from '../theme'
 import type { ThemeColors } from '../theme'
 import { useTheme } from '../context/ThemeContext'
+import { Chip, SectionHeader } from './ui'
 
 const PRESETS = [10, 15, 20, 25, 30]
 
@@ -30,32 +31,24 @@ export function DurationPicker({ value, onChange, label }: DurationPickerProps) 
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <SectionHeader title={label} style={styles.label} />}
       <View style={styles.row}>
         {PRESETS.map((m) => (
-          <TouchableOpacity
+          <Chip
             key={m}
-            style={[styles.preset, value === m && styles.presetActive]}
+            label={`${m}m`}
+            active={value === m}
             onPress={() => {
               setCustomMode(false)
               onChange(m)
             }}
-          >
-            <Text style={[styles.presetText, value === m && styles.presetTextActive]}>{m}m</Text>
-          </TouchableOpacity>
+          />
         ))}
-        <TouchableOpacity
-          style={[
-            styles.preset,
-            !isPreset && !customMode && styles.presetActive,
-            customMode && styles.presetActive,
-          ]}
+        <Chip
+          label={!isPreset && !customMode ? `${value}m` : 'Custom'}
+          active={(!isPreset && !customMode) || customMode}
           onPress={() => setCustomMode(true)}
-        >
-          <Text style={[styles.presetText, (!isPreset || customMode) && styles.presetTextActive]}>
-            {!isPreset && !customMode ? `${value}m` : 'Custom'}
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
       {customMode && (
         <View style={styles.customRow}>
@@ -82,29 +75,8 @@ export function DurationPicker({ value, onChange, label }: DurationPickerProps) 
 const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { marginBottom: 14 },
-    label: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.t2,
-      letterSpacing: 0.8,
-      marginBottom: 8,
-      textTransform: 'uppercase',
-    },
-    row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-    preset: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: radius.sm,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.s2,
-    },
-    presetActive: {
-      borderColor: colors.blue,
-      backgroundColor: colors.blueD,
-    },
-    presetText: { fontSize: font.sm, fontWeight: '700', color: colors.t2 },
-    presetTextActive: { color: colors.blue },
+    label: { marginLeft: 0 },
+    row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     customRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -114,9 +86,7 @@ const makeStyles = (colors: ThemeColors) =>
     customInput: {
       flex: 1,
       backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: 12,
       paddingHorizontal: 12,
       paddingVertical: 10,
       fontSize: font.md,
@@ -126,7 +96,7 @@ const makeStyles = (colors: ThemeColors) =>
     customUnit: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
     customBtn: {
       backgroundColor: colors.blue,
-      borderRadius: radius.sm,
+      borderRadius: 12,
       paddingHorizontal: 16,
       paddingVertical: 10,
     },

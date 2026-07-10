@@ -14,7 +14,6 @@ import {
   CloudSun,
   Moon,
   AlertTriangle,
-  ChevronRight,
   Flame,
   Plane,
   MapPin,
@@ -25,15 +24,33 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
+  Thermometer,
+  Wind,
+  Eye,
 } from 'lucide-react-native'
+import type { LucideIcon } from 'lucide-react-native'
 import { useAuth } from '../../src/context/AuthContext'
 import { useBadge } from '../../src/context/BadgeContext'
-import { preheatRequestsApi, queueApi, ApiError } from '../../src/lib/api'
-import type { PreheatRequest, QueueResponse } from '../../src/lib/api'
+import { preheatRequestsApi, queueApi, weatherApi, aircraftApi, ApiError } from '../../src/lib/api'
+import type {
+  PreheatRequest,
+  QueueResponse,
+  WeatherSnapshot,
+  AircraftItem,
+} from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
-import { font, radius } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
+import {
+  Card,
+  ListGroup,
+  ListRow,
+  Button,
+  SectionHeader,
+  StatTile,
+  IconGlyph,
+} from '../../src/components/ui'
+import type { Tone } from '../../src/components/ui'
 
 function getGreeting(): { text: string; iconName: string } {
   const h = new Date().getHours()
@@ -62,6 +79,50 @@ function getInitials(name: string): string {
     .join('')
 }
 
+function fmtWind(metar: string | null): string {
+  if (!metar) return '—'
+  const m = metar.match(/\b(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?KT\b/)
+  if (!m) return '—'
+  const dir = m[1] === 'VRB' ? 'VRB' : `${m[1]}°`
+  return m[3] ? `${dir} ${m[2]}G${m[3]}kt` : `${dir} ${m[2]}kt`
+}
+
+function fmtVisibility(metar: string | null): string {
+  if (!metar) return '—'
+  const m = metar.match(/\b(\d{1,2})SM\b/)
+  return m ? `${m[1]}SM` : '—'
+}
+
+function getActivityIcon(status: string): { Icon: LucideIcon; tone: Tone } {
+  switch (status) {
+    case 'completed':
+      return { Icon: CheckCircle, tone: 'green' }
+    case 'active':
+      return { Icon: Flame, tone: 'orange' }
+    case 'cancelled':
+      return { Icon: XCircle, tone: 'red' }
+    default:
+      return { Icon: Calendar, tone: 'blue' }
+  }
+}
+
+function fleetStatusLabel(status?: string): string {
+  switch (status) {
+    case 'waiting':
+      return 'Waiting'
+    case 'confirmed':
+      return 'Confirmed'
+    case 'active':
+      return 'Preheating'
+    case 'completed':
+      return 'Done today'
+    case 'cancelled':
+      return 'Cancelled'
+    default:
+      return 'No preheat today'
+  }
+}
+
 export default function DashboardScreen() {
   const { user, logout, devLogin } = useAuth()
   const { setConfirmBadge } = useBadge()
@@ -73,6 +134,8 @@ export default function DashboardScreen() {
   const [error, setError] = useState<string | null>(null)
   const [myRequests, setMyRequests] = useState<PreheatRequest[]>([])
   const [queue, setQueue] = useState<QueueResponse | null>(null)
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
+  const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const fetchData = useCallback(async () => {
     try {
       setError(null)
@@ -104,6 +167,29 @@ export default function DashboardScreen() {
     }, [fetchData]),
   )
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const w = await weatherApi.get()
+        setWeather(w)
+      } catch {
+        // Soft-fail: weather is decorative on the dashboard.
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (user?.role !== 'pilot') return
+    void (async () => {
+      try {
+        const list = await aircraftApi.list()
+        setAircraft(list)
+      } catch {
+        // Soft-fail: fleet list is supplementary on the dashboard.
+      }
+    })()
+  }, [user?.role])
+
   useWebSocket({
     'queue.updated': () => {
       void fetchData()
@@ -134,11 +220,11 @@ export default function DashboardScreen() {
         {/* Header row with avatar */}
         <View style={styles.headerRow}>
           <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={styles.greetingRow}>
               <Text style={styles.greeting}>{greeting.text}</Text>
-              {greeting.iconName === 'sun' && <Sun size={16} color={colors.t2} />}
-              {greeting.iconName === 'cloudsun' && <CloudSun size={16} color={colors.t2} />}
-              {greeting.iconName === 'moon' && <Moon size={16} color={colors.t2} />}
+              {greeting.iconName === 'sun' && <Sun size={14} color={colors.t2} />}
+              {greeting.iconName === 'cloudsun' && <CloudSun size={14} color={colors.t2} />}
+              {greeting.iconName === 'moon' && <Moon size={14} color={colors.t2} />}
             </View>
             <Text style={styles.name}>{user?.name ?? 'Pilot'}</Text>
           </View>
@@ -150,22 +236,101 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Weather */}
+        {weather && weather.tempC !== null && (
+          <View style={styles.section}>
+            <SectionHeader title="Weather" />
+            <Card>
+              <View style={styles.weatherHeaderRow}>
+                <IconGlyph icon={Thermometer} tone="blue" size={40} />
+                <View style={styles.weatherBody}>
+                  <Text style={styles.weatherIcao}>{weather.icao}</Text>
+                  <Text style={styles.weatherSub}>
+                    {weather.observedAt
+                      ? `Observed ${fmtTime(weather.observedAt)}`
+                      : 'Latest observation'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.flightGrid}>
+                <StatTile
+                  icon={Thermometer}
+                  label="Temp"
+                  value={`${weather.tempC.toFixed(0)}°C`}
+                  tone="blue"
+                />
+                <StatTile icon={Wind} label="Wind" value={fmtWind(weather.rawMetar)} />
+                <StatTile icon={Eye} label="Visibility" value={fmtVisibility(weather.rawMetar)} />
+                <StatTile
+                  icon={Flame}
+                  label="Preheat"
+                  value={`${weather.suggestedDurationMin}m`}
+                  tone="orange"
+                />
+              </View>
+              {weather.rawMetar && (
+                <>
+                  <View style={styles.divider} />
+                  <Text style={styles.weatherMetar} numberOfLines={2}>
+                    {weather.rawMetar}
+                  </Text>
+                </>
+              )}
+            </Card>
+          </View>
+        )}
+
+        {/* Queue summary */}
+        {!loading && queue && (
+          <View style={styles.section}>
+            <SectionHeader title="Today's queue" />
+            <Card>
+              <View style={styles.statsRow}>
+                <StatTile label="Waiting" value={String(queue.stats.waiting)} tone="yellow" />
+                <StatTile label="Active" value={String(queue.stats.active)} tone="orange" />
+                <StatTile label="Done" value={String(queue.stats.completed)} tone="green" />
+              </View>
+            </Card>
+          </View>
+        )}
+
+        {/* My fleet */}
+        {user?.role === 'pilot' && aircraft.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="My fleet" />
+            <ListGroup>
+              {aircraft.map((a) => {
+                const req = myRequests.find((r) => r.tailNumber === a.tailNumber)
+                const tone = req ? getActivityIcon(req.status).tone : 'neutral'
+                return (
+                  <ListRow
+                    key={a.id}
+                    icon={Plane}
+                    tone={tone}
+                    title={a.tailNumber}
+                    subtitle={a.type}
+                    value={fleetStatusLabel(req?.status)}
+                    showChevron
+                    onPress={() => router.push('/(app)/request')}
+                  />
+                )
+              })}
+            </ListGroup>
+          </View>
+        )}
+
         {/* Alert banner */}
         {confirmNeeded.length > 0 && (
-          <TouchableOpacity
-            style={styles.alertBanner}
-            onPress={() => router.push('/(app)/confirm')}
-          >
-            <AlertTriangle size={18} color={colors.red} />
-            <View style={styles.alertText}>
-              <Text style={styles.alertTitle}>Confirmation Required</Text>
-              <Text style={styles.alertBody}>
-                {confirmNeeded.length} request{confirmNeeded.length > 1 ? 's' : ''} need
-                confirmation. Tap to confirm.
-              </Text>
-            </View>
-            <ChevronRight size={20} color={colors.orange} />
-          </TouchableOpacity>
+          <ListGroup style={styles.alertGroup}>
+            <ListRow
+              icon={AlertTriangle}
+              tone="red"
+              title="Confirmation required"
+              subtitle={`${confirmNeeded.length} request${confirmNeeded.length > 1 ? 's' : ''} need confirmation`}
+              showChevron
+              onPress={() => router.push('/(app)/confirm')}
+            />
+          </ListGroup>
         )}
 
         {/* Loading / Error */}
@@ -175,243 +340,149 @@ export default function DashboardScreen() {
           </View>
         )}
         {!loading && error && (
-          <View style={styles.errorBox}>
+          <Card style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity onPress={() => void fetchData()}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
-          </View>
+          </Card>
         )}
 
         {/* Active flight card */}
         {!loading && activeRequest && (
-          <View style={styles.flightCard}>
-            <View style={styles.flightCardHeader}>
-              <Text style={styles.flightTail}>{activeRequest.tailNumber ?? '—'}</Text>
-              <StatusPill status={activeRequest.status} />
-            </View>
-            <View style={styles.flightGrid}>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Flame size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Preheat</Text>
-                </View>
-                <Text style={styles.flightGridValue}>{fmtTime(activeRequest.assignedTime)}</Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Plane size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Engine Start</Text>
-                </View>
-                <Text style={styles.flightGridValue}>{fmtTime(activeRequest.engineStartTime)}</Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <MapPin size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Queue Pos.</Text>
-                </View>
-                <Text style={[styles.flightGridValue, { color: colors.blue }]}>
-                  #{activeRequest.queuePosition}
-                </Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <BarChart3 size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Status</Text>
-                </View>
-                <Text style={[styles.flightGridValue, { color: colors.green }]}>Active</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <TouchableOpacity style={styles.flightBtn} onPress={() => router.push('/(app)/track')}>
-              <Text style={styles.flightBtnText}>Track Session →</Text>
-            </TouchableOpacity>
-          </View>
+          <FlightCard
+            tail={activeRequest.tailNumber}
+            status={activeRequest.status}
+            stats={[
+              { icon: Flame, label: 'Preheat', value: fmtTime(activeRequest.assignedTime) },
+              { icon: Plane, label: 'Engine start', value: fmtTime(activeRequest.engineStartTime) },
+              {
+                icon: MapPin,
+                label: 'Queue pos.',
+                value: `#${activeRequest.queuePosition}`,
+                tone: 'blue',
+              },
+              { icon: BarChart3, label: 'Status', value: 'Active', tone: 'green' },
+            ]}
+            buttonTitle="Track Session"
+            onPress={() => router.push('/(app)/track')}
+          />
         )}
 
         {/* Confirm needed flight card */}
         {!loading && !activeRequest && confirmNeeded.length > 0 && (
-          <View style={styles.flightCard}>
-            <View style={styles.flightCardHeader}>
-              <Text style={styles.flightTail}>{confirmNeeded[0].tailNumber ?? '—'}</Text>
-              <StatusPill status="confirm" />
-            </View>
-            <View style={styles.flightGrid}>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Flame size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Preheat</Text>
-                </View>
-                <Text style={styles.flightGridValue}>{fmtTime(confirmNeeded[0].assignedTime)}</Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Plane size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Engine Start</Text>
-                </View>
-                <Text style={styles.flightGridValue}>
-                  {fmtTime(confirmNeeded[0].engineStartTime)}
-                </Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <MapPin size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Queue Pos.</Text>
-                </View>
-                <Text style={[styles.flightGridValue, { color: colors.blue }]}>
-                  #{confirmNeeded[0].queuePosition}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.confirmFlightBtn}
-              onPress={() => router.push('/(app)/confirm')}
-            >
-              <Text style={styles.confirmFlightBtnText}>Confirm My Attendance →</Text>
-            </TouchableOpacity>
-          </View>
+          <FlightCard
+            tail={confirmNeeded[0].tailNumber}
+            status="confirm"
+            stats={[
+              { icon: Flame, label: 'Preheat', value: fmtTime(confirmNeeded[0].assignedTime) },
+              {
+                icon: Plane,
+                label: 'Engine start',
+                value: fmtTime(confirmNeeded[0].engineStartTime),
+              },
+              {
+                icon: MapPin,
+                label: 'Queue pos.',
+                value: `#${confirmNeeded[0].queuePosition}`,
+                tone: 'blue',
+              },
+            ]}
+            buttonTitle="Confirm My Attendance"
+            buttonTone="orange"
+            onPress={() => router.push('/(app)/confirm')}
+          />
         )}
 
         {/* Mechanic active session card */}
         {!loading && user?.role === 'mechanic' && mechanicActiveEntry && (
-          <View style={styles.flightCard}>
-            <View style={styles.flightCardHeader}>
-              <Text style={styles.flightTail}>{mechanicActiveEntry.tailNumber}</Text>
-              <StatusPill status="active" />
-            </View>
-            <View style={styles.flightGrid}>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Plane size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Pilot</Text>
-                </View>
-                <Text style={styles.flightGridValue}>{mechanicActiveEntry.pilotFirstName}</Text>
-              </View>
-              <View style={styles.flightGridItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Flame size={10} color={colors.t3} />
-                  <Text style={styles.flightGridLabel}>Engine Start</Text>
-                </View>
-                <Text style={styles.flightGridValue}>
-                  {fmtTime(mechanicActiveEntry.engineStartTime)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.flightBtn}
-              onPress={() =>
-                router.push({
-                  pathname: '/(app)/track',
-                  params: { requestId: mechanicActiveEntry.id },
-                })
-              }
-            >
-              <Text style={styles.flightBtnText}>Track Active Session →</Text>
-            </TouchableOpacity>
-          </View>
+          <FlightCard
+            tail={mechanicActiveEntry.tailNumber}
+            status="active"
+            stats={[
+              { icon: Plane, label: 'Pilot', value: mechanicActiveEntry.pilotFirstName },
+              {
+                icon: Flame,
+                label: 'Engine start',
+                value: fmtTime(mechanicActiveEntry.engineStartTime),
+              },
+            ]}
+            buttonTitle="Track Active Session"
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/track',
+                params: { requestId: mechanicActiveEntry.id },
+              })
+            }
+          />
         )}
 
         {/* Quick actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
+          <SectionHeader title="Quick actions" />
           <View style={styles.quickRow}>
             {user?.role === 'pilot' && (
-              <TouchableOpacity
-                style={styles.quickBox}
+              <QuickAction
+                icon={PlusCircle}
+                tone="blue"
+                label="Request"
+                sub="Preheat"
                 onPress={() => router.push('/(app)/request')}
-              >
-                <PlusCircle size={28} color={colors.blue} />
-                <Text style={styles.quickLabel}>Request</Text>
-                <Text style={styles.quickSub}>Preheat</Text>
-              </TouchableOpacity>
+              />
             )}
-            <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/queue')}>
-              <ListOrdered size={28} color={colors.orange} />
-              <Text style={styles.quickLabel}>View</Text>
-              <Text style={styles.quickSub}>Queue</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickBox} onPress={() => router.push('/(app)/track')}>
-              <Activity size={28} color={colors.green} />
-              <Text style={styles.quickLabel}>Track</Text>
-              <Text style={styles.quickSub}>Status</Text>
-            </TouchableOpacity>
+            <QuickAction
+              icon={ListOrdered}
+              tone="orange"
+              label="View"
+              sub="Queue"
+              onPress={() => router.push('/(app)/queue')}
+            />
+            <QuickAction
+              icon={Activity}
+              tone="green"
+              label="Track"
+              sub="Status"
+              onPress={() => router.push('/(app)/track')}
+            />
           </View>
         </View>
-
-        {/* Queue summary */}
-        {!loading && queue && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>TODAY'S QUEUE</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Waiting</Text>
-                <Text style={[styles.statNum, { color: colors.yellow }]}>
-                  {queue.stats.waiting}
-                </Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Active</Text>
-                <Text style={[styles.statNum, { color: colors.orange }]}>{queue.stats.active}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Done</Text>
-                <Text style={[styles.statNum, { color: colors.green }]}>
-                  {queue.stats.completed}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
 
         {/* Recent activity */}
         {!loading && myRequests.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
-            {myRequests.slice(0, 5).map((req) => {
-              const iconStyle = getActivityIcon(req.status, colors)
-              return (
-                <View key={req.id} style={styles.activityItem}>
-                  <View style={[styles.activityIconBox, { backgroundColor: iconStyle.bg }]}>
-                    <iconStyle.Icon size={17} color={iconStyle.color} />
-                  </View>
-                  <View style={styles.activityBody}>
-                    <Text style={styles.activityTitle}>
-                      {req.status === 'completed'
+            <SectionHeader title="Recent activity" />
+            <ListGroup>
+              {myRequests.slice(0, 5).map((req) => {
+                const iconStyle = getActivityIcon(req.status)
+                return (
+                  <ListRow
+                    key={req.id}
+                    icon={iconStyle.Icon}
+                    tone={iconStyle.tone}
+                    title={
+                      req.status === 'completed'
                         ? `Preheat completed – ${req.tailNumber}`
                         : req.status === 'active'
                           ? `Preheat active – ${req.tailNumber}`
-                          : `Schedule assigned – ${req.tailNumber}`}
-                    </Text>
-                    <Text style={styles.activitySub}>
-                      Engine start: {fmtTime(req.engineStartTime)}
-                    </Text>
-                  </View>
-                </View>
-              )
-            })}
+                          : `Schedule assigned – ${req.tailNumber}`
+                    }
+                    subtitle={`Engine start: ${fmtTime(req.engineStartTime)}`}
+                  />
+                )
+              })}
+            </ListGroup>
           </View>
         )}
 
         {/* Dev panel */}
         {__DEV__ && (
-          <View style={styles.devPanel}>
-            <Text style={styles.devTitle}>Dev Panel</Text>
-            <View style={styles.devRow}>
-              <TouchableOpacity style={styles.devBtn} onPress={() => void devLogin('pilot')}>
-                <Text style={styles.devBtnText}>Dev Pilot</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.devBtn} onPress={() => void devLogin('mechanic')}>
-                <Text style={styles.devBtnText}>Dev Mechanic</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.devBtn, { borderColor: colors.redD }]}
-                onPress={() => void logout()}
-              >
-                <Text style={[styles.devBtnText, { color: colors.red }]}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.section}>
+            <SectionHeader title="Dev panel" />
+            <ListGroup>
+              <ListRow title="Dev Pilot" onPress={() => void devLogin('pilot')} />
+              <ListRow title="Dev Mechanic" onPress={() => void devLogin('mechanic')} />
+              <ListRow title="Sign Out" destructive onPress={() => void logout()} />
+            </ListGroup>
           </View>
         )}
       </ScrollView>
@@ -419,24 +490,69 @@ export default function DashboardScreen() {
   )
 }
 
-function getActivityIcon(
-  status: string,
-  colors: ThemeColors,
-): {
-  Icon: React.ComponentType<{ size: number; color: string }>
-  color: string
-  bg: string
-} {
-  switch (status) {
-    case 'completed':
-      return { Icon: CheckCircle, color: colors.green, bg: colors.greenD }
-    case 'active':
-      return { Icon: Flame, color: colors.orange, bg: colors.orangeD }
-    case 'cancelled':
-      return { Icon: XCircle, color: colors.red, bg: colors.redD }
-    default:
-      return { Icon: Calendar, color: colors.blue, bg: colors.blueD }
-  }
+interface StatSpec {
+  icon: LucideIcon
+  label: string
+  value: string
+  tone?: Tone
+}
+
+function FlightCard({
+  tail,
+  status,
+  stats,
+  buttonTitle,
+  buttonTone,
+  onPress,
+}: {
+  tail: string | null | undefined
+  status: string
+  stats: StatSpec[]
+  buttonTitle: string
+  buttonTone?: Tone
+  onPress: () => void
+}) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  return (
+    <Card style={styles.flightCard}>
+      <View style={styles.flightCardHeader}>
+        <Text style={styles.flightTail}>{tail ?? '—'}</Text>
+        <StatusPill status={status} />
+      </View>
+      <View style={styles.flightGrid}>
+        {stats.map((s) => (
+          <StatTile key={s.label} icon={s.icon} label={s.label} value={s.value} tone={s.tone} />
+        ))}
+      </View>
+      <View style={styles.divider} />
+      <Button title={buttonTitle} tone={buttonTone ?? 'blue'} onPress={onPress} />
+    </Card>
+  )
+}
+
+function QuickAction({
+  icon,
+  tone,
+  label,
+  sub,
+  onPress,
+}: {
+  icon: LucideIcon
+  tone: Tone
+  label: string
+  sub: string
+  onPress: () => void
+}) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  return (
+    <TouchableOpacity style={styles.quickBox} onPress={onPress} activeOpacity={0.7}>
+      <IconGlyph icon={icon} tone={tone} size={40} />
+      <Text style={styles.quickLabel}>{label}</Text>
+      <Text style={styles.quickSub}>{sub}</Text>
+    </TouchableOpacity>
+  )
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -463,132 +579,78 @@ const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
     root: { flex: 1, backgroundColor: colors.bg },
-    content: { padding: 20, paddingBottom: 40 },
+    content: { padding: 20, paddingBottom: 110 },
 
     // Header
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 18,
+      marginBottom: 22,
     },
-    greeting: { fontSize: 13, color: colors.t2 },
-    name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 2 },
+    greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    greeting: { fontSize: 14, color: colors.t2 },
+    name: { fontSize: 30, fontWeight: '700', color: colors.text, marginTop: 2 },
     avatarWrap: { position: 'relative' },
     avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.blueD,
     },
-    avatarText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+    avatarText: { fontSize: 17, fontWeight: '600', color: colors.blue },
     avatarDot: {
       position: 'absolute',
       top: 0,
       right: 0,
-      width: 10,
-      height: 10,
+      width: 11,
+      height: 11,
       backgroundColor: colors.red,
-      borderRadius: 5,
+      borderRadius: 6,
       borderWidth: 2,
       borderColor: colors.bg,
     },
 
-    // Alert banner
-    alertBanner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.orangeD,
-      borderWidth: 1,
-      borderColor: colors.orange,
-      borderRadius: radius.md,
-      padding: 13,
-      marginBottom: 14,
-      gap: 11,
-    },
-    alertIcon: { fontSize: 18 },
-    alertText: { flex: 1 },
-    alertTitle: { fontSize: 13, fontWeight: '700', color: colors.orange },
-    alertBody: { fontSize: 12, color: colors.t2, marginTop: 2 },
-    alertChevron: { fontSize: 20, color: colors.orange },
+    alertGroup: { marginBottom: 14 },
 
     // Loading / Error
     center: { alignItems: 'center', paddingVertical: 40 },
     errorBox: {
       backgroundColor: colors.redD,
-      borderRadius: radius.md,
-      padding: 16,
       marginBottom: 20,
       alignItems: 'center',
+      shadowOpacity: 0,
+      elevation: 0,
     },
-    errorText: { color: colors.red, fontSize: font.base },
+    errorText: { color: colors.red, fontSize: 14 },
     retryText: {
       color: colors.red,
-      fontSize: font.base,
+      fontSize: 14,
       marginTop: 8,
       textDecorationLine: 'underline',
     },
 
-    // Flight card (blue gradient style)
-    flightCard: {
-      backgroundColor: colors.blueD,
-      borderRadius: radius.lg,
-      borderWidth: 1.5,
-      borderColor: colors.blueD,
-      padding: 20,
-      marginBottom: 14,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 4,
-    },
+    // Flight card
+    flightCard: { marginBottom: 14 },
     flightCardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 14,
+      marginBottom: 16,
     },
-    flightTail: { fontSize: 24, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    flightTail: { fontSize: 24, fontWeight: '700', color: colors.text, letterSpacing: -0.5 },
     flightGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 12,
+      gap: 14,
     },
-    flightGridItem: { width: '46%' },
-    flightGridLabel: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: colors.t3,
-      textTransform: 'uppercase',
-      letterSpacing: 0.7,
-      marginBottom: 3,
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginVertical: 16,
     },
-    flightGridValue: { fontSize: 18, fontWeight: '800', color: colors.text },
-    divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
-    flightBtn: {
-      backgroundColor: colors.blue,
-      borderRadius: radius.md,
-      paddingVertical: 14,
-      alignItems: 'center',
-      shadowColor: colors.blue,
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
-      elevation: 4,
-    },
-    flightBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-    confirmFlightBtn: {
-      backgroundColor: colors.orange,
-      borderRadius: radius.md,
-      paddingVertical: 14,
-      alignItems: 'center',
-      shadowColor: colors.orange,
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 4,
-    },
-    confirmFlightBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 
     // Pill
     pill: {
@@ -603,91 +665,37 @@ const makeStyles = (colors: ThemeColors) =>
     pillText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
 
     // Quick actions
-    section: { marginTop: 10, marginBottom: 14 },
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: colors.t3,
-      marginBottom: 8,
-    },
+    section: { marginTop: 6, marginBottom: 14 },
     quickRow: { flexDirection: 'row', gap: 10 },
     quickBox: {
       flex: 1,
-      backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingVertical: 16,
+      backgroundColor: colors.s1,
+      borderRadius: 18,
+      paddingVertical: 18,
       paddingHorizontal: 8,
       alignItems: 'center',
-      gap: 3,
+      gap: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
     },
-    quickIcon: { fontSize: 28 },
-    quickLabel: { fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 6 },
-    quickSub: { fontSize: 11, color: colors.t3 },
+    quickLabel: { fontSize: 13, fontWeight: '600', color: colors.text },
+    quickSub: { fontSize: 11, color: colors.t3, marginTop: -4 },
 
     // Stats
-    statsRow: { flexDirection: 'row', gap: 10 },
-    statBox: {
-      flex: 1,
-      backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingVertical: 11,
-      paddingHorizontal: 8,
-      alignItems: 'center',
-    },
-    statLabel: {
-      fontSize: 10,
+    statsRow: { flexDirection: 'row' },
+
+    // Weather
+    weatherHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    weatherBody: { flex: 1 },
+    weatherIcao: { fontSize: 15, fontWeight: '700', color: colors.text },
+    weatherSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
+    weatherMetar: {
+      fontSize: 11,
       color: colors.t3,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
+      fontFamily: 'monospace',
+      lineHeight: 16,
     },
-    statNum: { fontSize: 22, fontWeight: '800', color: colors.text },
-
-    // Recent activity
-    activityItem: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-      paddingVertical: 13,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    activityIconBox: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    activityIconText: { fontSize: 17 },
-    activityBody: { flex: 1 },
-    activityTitle: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 2 },
-    activitySub: { fontSize: 12, color: colors.t2, lineHeight: 18 },
-
-    // Dev panel
-    devPanel: {
-      marginTop: 20,
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-    },
-    devTitle: { fontSize: font.sm, color: colors.t3, marginBottom: 10, fontWeight: '600' },
-    devRow: { flexDirection: 'row', gap: 8 },
-    devBtn: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radius.sm,
-      paddingVertical: 10,
-      alignItems: 'center',
-    },
-    devBtnText: { color: colors.t2, fontSize: font.sm, fontWeight: '600' },
   })

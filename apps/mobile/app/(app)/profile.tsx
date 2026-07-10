@@ -16,13 +16,14 @@ import { useFocusEffect } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { aircraftApi, preferencesApi, ApiError } from '../../src/lib/api'
 import type { AircraftItem, NotificationPrefs } from '../../src/lib/api'
-import { Plane, Wrench, Settings, ChevronRight, Sun, Moon } from 'lucide-react-native'
+import { Plane, Wrench, Settings, Sun, Moon } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
-import { font, radius } from '../../src/theme'
+import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
+import { Card, Button, SectionHeader, ListGroup, ListRow } from '../../src/components/ui'
 
-const getRoleColors = (
+const getRoleMeta = (
   colors: ThemeColors,
 ): Record<string, { bg: string; fg: string; label: string; Icon: LucideIcon }> => ({
   pilot: { bg: colors.blueD, fg: colors.blue, label: 'Pilot Role', Icon: Plane },
@@ -42,7 +43,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth()
   const { colors, mode, setMode } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
-  const ROLE_COLORS = useMemo(() => getRoleColors(colors), [colors])
+  const ROLE_META = useMemo(() => getRoleMeta(colors), [colors])
 
   const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const [loadingAircraft, setLoadingAircraft] = useState(true)
@@ -154,11 +155,16 @@ export default function ProfileScreen() {
     }
   }
 
-  const roleMeta = ROLE_COLORS[user?.role ?? ''] ?? {
+  const roleMeta = ROLE_META[user?.role ?? ''] ?? {
     bg: colors.s3,
     fg: colors.t2,
     label: (user?.role ?? 'unknown').toUpperCase(),
     Icon: Plane,
+  }
+
+  const switchProps = {
+    trackColor: { false: colors.s3, true: colors.blue },
+    thumbColor: '#fff',
   }
 
   return (
@@ -190,232 +196,198 @@ export default function ProfileScreen() {
         </View>
 
         {/* Account section */}
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
-        <View style={styles.settingsCard}>
-          <View style={styles.settingsRow}>
-            <View>
-              <Text style={styles.settingsLabel}>Full Name</Text>
-              <Text style={styles.settingsValue}>{user?.name ?? '—'}</Text>
-            </View>
-            <ChevronRight size={16} color={colors.t3} />
-          </View>
-          <View style={styles.settingsRow}>
-            <View>
-              <Text style={styles.settingsLabel}>Email</Text>
-              <Text style={styles.settingsValue}>{user?.email ?? '—'}</Text>
-            </View>
-            <ChevronRight size={16} color={colors.t3} />
-          </View>
-          <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
-            <View>
-              <Text style={styles.settingsLabel}>My Aircraft</Text>
-              <Text style={styles.settingsValue}>
-                {aircraft.map((a) => a.tailNumber).join(', ') || 'None added'}
-              </Text>
-            </View>
-            <ChevronRight size={16} color={colors.t3} />
-          </View>
+        <View style={styles.section}>
+          <SectionHeader title="Account" style={styles.sectionHeader} />
+          <ListGroup>
+            <ListRow title="Full Name" value={user?.name ?? '—'} showChevron />
+            <ListRow title="Email" value={user?.email ?? '—'} showChevron />
+            <ListRow
+              title="My Aircraft"
+              value={aircraft.map((a) => a.tailNumber).join(', ') || 'None added'}
+              showChevron
+            />
+          </ListGroup>
         </View>
 
         {/* Notifications section */}
-        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
-        <View style={styles.settingsCard}>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingsLabel}>Schedule Alerts</Text>
-              <Text style={styles.settingsSub}>When preheat is assigned</Text>
-            </View>
-            <Switch
-              value={notifPrefs.scheduleAlerts}
-              onValueChange={(v) => void handleTogglePref('scheduleAlerts', v)}
-              trackColor={{ false: colors.s3, true: colors.blue }}
-              thumbColor="#fff"
+        <View style={styles.section}>
+          <SectionHeader title="Notifications" style={styles.sectionHeader} />
+          <ListGroup>
+            <ListRow
+              title="Schedule Alerts"
+              subtitle="When preheat is assigned"
+              trailing={
+                <Switch
+                  value={notifPrefs.scheduleAlerts}
+                  onValueChange={(v) => void handleTogglePref('scheduleAlerts', v)}
+                  {...switchProps}
+                />
+              }
             />
-          </View>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingsLabel}>Confirmation Reminder</Text>
-              <Text style={styles.settingsSub}>30 min before departure</Text>
-            </View>
-            <Switch
-              value={notifPrefs.confirmReminder}
-              onValueChange={(v) => void handleTogglePref('confirmReminder', v)}
-              trackColor={{ false: colors.s3, true: colors.blue }}
-              thumbColor="#fff"
+            <ListRow
+              title="Confirmation Reminder"
+              subtitle="30 min before departure"
+              trailing={
+                <Switch
+                  value={notifPrefs.confirmReminder}
+                  onValueChange={(v) => void handleTogglePref('confirmReminder', v)}
+                  {...switchProps}
+                />
+              }
             />
-          </View>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingsLabel}>Preheat Progress</Text>
-              <Text style={styles.settingsSub}>Started / Completed</Text>
-            </View>
-            <Switch
-              value={notifPrefs.preheatProgress}
-              onValueChange={(v) => void handleTogglePref('preheatProgress', v)}
-              trackColor={{ false: colors.s3, true: colors.blue }}
-              thumbColor="#fff"
+            <ListRow
+              title="Preheat Progress"
+              subtitle="Started / Completed"
+              trailing={
+                <Switch
+                  value={notifPrefs.preheatProgress}
+                  onValueChange={(v) => void handleTogglePref('preheatProgress', v)}
+                  {...switchProps}
+                />
+              }
             />
-          </View>
-          <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingsLabel}>Queue Changes</Text>
-              <Text style={styles.settingsSub}>Position updates</Text>
-            </View>
-            <Switch
-              value={notifPrefs.queueChanges}
-              onValueChange={(v) => void handleTogglePref('queueChanges', v)}
-              trackColor={{ false: colors.s3, true: colors.blue }}
-              thumbColor="#fff"
+            <ListRow
+              title="Queue Changes"
+              subtitle="Position updates"
+              trailing={
+                <Switch
+                  value={notifPrefs.queueChanges}
+                  onValueChange={(v) => void handleTogglePref('queueChanges', v)}
+                  {...switchProps}
+                />
+              }
             />
-          </View>
+          </ListGroup>
         </View>
 
         {/* Appearance section */}
-        <Text style={styles.sectionTitle}>APPEARANCE</Text>
-        <View style={styles.settingsCard}>
-          <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-              {mode === 'light' ? (
-                <Sun size={16} color={colors.t2} />
-              ) : (
-                <Moon size={16} color={colors.t2} />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.settingsLabel}>Light Mode</Text>
-                <Text style={styles.settingsSub}>Use a light color theme</Text>
-              </View>
-            </View>
-            <Switch
-              value={mode === 'light'}
-              onValueChange={(v) => setMode(v ? 'light' : 'dark')}
-              trackColor={{ false: colors.s3, true: colors.blue }}
-              thumbColor="#fff"
-              accessibilityLabel="Toggle light mode"
+        <View style={styles.section}>
+          <SectionHeader title="Appearance" style={styles.sectionHeader} />
+          <ListGroup>
+            <ListRow
+              icon={mode === 'light' ? Sun : Moon}
+              tone="neutral"
+              title="Light Mode"
+              subtitle="Use a light color theme"
+              trailing={
+                <Switch
+                  value={mode === 'light'}
+                  onValueChange={(v) => setMode(v ? 'light' : 'dark')}
+                  accessibilityLabel="Toggle light mode"
+                  {...switchProps}
+                />
+              }
             />
-          </View>
+          </ListGroup>
         </View>
 
         {/* Aircraft section */}
-        <View style={styles.aircraftHeader}>
-          <Text style={styles.sectionTitle}>MY AIRCRAFT</Text>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              setShowAddForm((v) => !v)
-              setAddError(null)
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={showAddForm ? 'Cancel adding aircraft' : 'Add new aircraft'}
-          >
-            <Text style={styles.addBtnText}>{showAddForm ? 'Cancel' : '+ Add'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Add form */}
-        {showAddForm && (
-          <View style={styles.addForm}>
-            <Text style={styles.formLabel}>Tail Number</Text>
-            <TextInput
-              style={styles.input}
-              value={tailNumber}
-              onChangeText={setTailNumber}
-              placeholder="e.g. N12345"
-              placeholderTextColor={colors.t3}
-              autoCapitalize="characters"
-            />
-            <Text style={styles.formLabel}>Aircraft Type</Text>
-            <TextInput
-              style={styles.input}
-              value={aircraftType}
-              onChangeText={setAircraftType}
-              placeholder="e.g. Cessna 172"
-              placeholderTextColor={colors.t3}
-            />
-            {addError ? <Text style={styles.formError}>{addError}</Text> : null}
+        <View style={styles.section}>
+          <View style={styles.aircraftHeader}>
+            <SectionHeader title="My Aircraft" style={styles.sectionHeaderNoPad} />
             <TouchableOpacity
-              style={[styles.submitBtn, adding && styles.submitBtnDisabled]}
-              onPress={() => void handleAddAircraft()}
-              disabled={adding}
+              style={styles.addBtn}
+              onPress={() => {
+                setShowAddForm((v) => !v)
+                setAddError(null)
+              }}
               accessibilityRole="button"
-              accessibilityLabel="Save new aircraft"
-              accessibilityState={{ disabled: adding, busy: adding }}
+              accessibilityLabel={showAddForm ? 'Cancel adding aircraft' : 'Add new aircraft'}
             >
-              {adding ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitBtnText}>Add Aircraft</Text>
-              )}
+              <Text style={styles.addBtnText}>{showAddForm ? 'Cancel' : '+ Add'}</Text>
             </TouchableOpacity>
           </View>
-        )}
 
-        {loadingAircraft ? (
-          <View style={styles.centerPad}>
-            <ActivityIndicator color={colors.blue} />
-          </View>
-        ) : aircraftError ? (
-          <View style={styles.inlineError}>
-            <Text style={styles.inlineErrorText}>{aircraftError}</Text>
-            <TouchableOpacity onPress={() => void fetchAircraft()}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : aircraft.length === 0 && !showAddForm ? (
-          <View style={styles.aircraftEmpty}>
-            <Text style={styles.aircraftEmptyText}>No aircraft added yet</Text>
-          </View>
-        ) : (
-          aircraft.map((item) => (
-            <View key={item.id} style={styles.aircraftCard}>
-              <View style={styles.aircraftIconCircle}>
-                <Plane size={18} color={colors.t2} />
-              </View>
-              <View style={styles.aircraftInfo}>
-                <Text style={styles.aircraftTail}>{item.tailNumber}</Text>
-                <Text style={styles.aircraftTypeName}>{item.type}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => void handleDelete(item)}
-                disabled={deletingId === item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove ${item.tailNumber}`}
-                accessibilityState={{
-                  disabled: deletingId === item.id,
-                  busy: deletingId === item.id,
-                }}
-              >
-                {deletingId === item.id ? (
-                  <ActivityIndicator size="small" color={colors.red} />
-                ) : (
-                  <Text style={styles.deleteBtnText}>Remove</Text>
-                )}
+          {/* Add form */}
+          {showAddForm && (
+            <Card style={styles.addForm}>
+              <Text style={styles.formLabel}>Tail Number</Text>
+              <TextInput
+                style={styles.input}
+                value={tailNumber}
+                onChangeText={setTailNumber}
+                placeholder="e.g. N12345"
+                placeholderTextColor={colors.t3}
+                autoCapitalize="characters"
+              />
+              <Text style={styles.formLabel}>Aircraft Type</Text>
+              <TextInput
+                style={styles.input}
+                value={aircraftType}
+                onChangeText={setAircraftType}
+                placeholder="e.g. Cessna 172"
+                placeholderTextColor={colors.t3}
+              />
+              {addError ? <Text style={styles.formError}>{addError}</Text> : null}
+              <Button
+                title="Add Aircraft"
+                loading={adding}
+                onPress={() => void handleAddAircraft()}
+                style={{ marginTop: 8 }}
+              />
+            </Card>
+          )}
+
+          {loadingAircraft ? (
+            <View style={styles.centerPad}>
+              <ActivityIndicator color={colors.blue} />
+            </View>
+          ) : aircraftError ? (
+            <View style={styles.inlineError}>
+              <Text style={styles.inlineErrorText}>{aircraftError}</Text>
+              <TouchableOpacity onPress={() => void fetchAircraft()}>
+                <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ))
-        )}
+          ) : aircraft.length === 0 && !showAddForm ? (
+            <View style={styles.aircraftEmpty}>
+              <Text style={styles.aircraftEmptyText}>No aircraft added yet</Text>
+            </View>
+          ) : (
+            <ListGroup>
+              {aircraft.map((item) => (
+                <ListRow
+                  key={item.id}
+                  icon={Plane}
+                  tone="neutral"
+                  title={item.tailNumber}
+                  subtitle={item.type}
+                  trailing={
+                    deletingId === item.id ? (
+                      <ActivityIndicator size="small" color={colors.red} />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => void handleDelete(item)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${item.tailNumber}`}
+                      >
+                        <Text style={styles.deleteBtnText}>Remove</Text>
+                      </TouchableOpacity>
+                    )
+                  }
+                />
+              ))}
+            </ListGroup>
+          )}
 
-        {deleteError && (
-          <View style={styles.inlineError}>
-            <Text style={styles.inlineErrorText}>{deleteError}</Text>
-          </View>
-        )}
+          {deleteError && (
+            <View style={styles.inlineError}>
+              <Text style={styles.inlineErrorText}>{deleteError}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Sign out */}
-        <TouchableOpacity
-          style={styles.signOutBtn}
-          onPress={() => void handleSignOut()}
-          disabled={signingOut}
-          accessibilityRole="button"
-          accessibilityLabel="Sign out of your account"
-          accessibilityState={{ disabled: signingOut, busy: signingOut }}
-        >
-          {signingOut ? (
-            <ActivityIndicator color={colors.red} />
-          ) : (
-            <Text style={styles.signOutText}>Sign Out</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.section}>
+          <ListGroup>
+            <ListRow
+              title="Sign Out"
+              destructive
+              onPress={() => void handleSignOut()}
+              trailing={signingOut ? <ActivityIndicator color={colors.red} /> : undefined}
+            />
+          </ListGroup>
+        </View>
 
         <TouchableOpacity
           onPress={() => void Linking.openURL('https://preheat.app/privacy')}
@@ -433,7 +405,7 @@ export default function ProfileScreen() {
 const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
-    content: { paddingBottom: 60 },
+    content: { paddingBottom: 100 },
 
     // Profile header
     profileHeader: {
@@ -443,22 +415,20 @@ const makeStyles = (colors: ThemeColors) =>
       paddingHorizontal: 20,
     },
     avatarLg: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
+      width: 76,
+      height: 76,
+      borderRadius: 38,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.blueD,
-      borderWidth: 3,
-      borderColor: colors.blue,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      elevation: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 2,
       marginBottom: 14,
     },
-    avatarLgText: { fontSize: 28, fontWeight: '800', color: '#fff' },
-    profileName: { fontSize: 20, fontWeight: '800', color: colors.text },
+    avatarLgText: { fontSize: 28, fontWeight: '700', color: colors.blue },
+    profileName: { fontSize: 22, fontWeight: '700', color: colors.text },
     profileLicense: { fontSize: 13, color: colors.t2, marginTop: 3 },
     rolePill: {
       paddingHorizontal: 14,
@@ -477,104 +447,38 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: 16,
     },
     statItem: { alignItems: 'center' },
-    statNum: { fontSize: 18, fontWeight: '800', color: colors.text },
+    statNum: { fontSize: 18, fontWeight: '700', color: colors.text },
     statLabel: { fontSize: 11, color: colors.t3 },
-    statDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-    // Section title
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: colors.t3,
-      marginBottom: 8,
-      marginTop: 4,
-      paddingHorizontal: 20,
-    },
-
-    // Settings card
-    settingsCard: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginHorizontal: 20,
-      marginBottom: 14,
-      overflow: 'hidden',
-    },
-    settingsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    settingsLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-    settingsValue: { fontSize: 12, color: colors.t2, marginTop: 2 },
-    settingsSub: { fontSize: 12, color: colors.t2, marginTop: 2 },
-    chevron: { fontSize: 18, color: colors.t3 },
-
-    // Toggle row
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
+    section: { paddingHorizontal: 20, marginBottom: 18 },
+    sectionHeader: { marginLeft: 4 },
+    sectionHeaderNoPad: { marginLeft: 4, marginBottom: 0 },
 
     // Aircraft section
     aircraftHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingRight: 20,
-      marginBottom: 0,
+      marginBottom: 8,
     },
     addBtn: {
-      borderWidth: 1,
-      borderColor: colors.blue,
-      borderRadius: radius.full,
+      backgroundColor: colors.blueD,
+      borderRadius: 99,
       paddingHorizontal: 14,
       paddingVertical: 6,
     },
     addBtnText: { color: colors.blue, fontSize: font.sm, fontWeight: '600' },
-    addForm: {
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-      marginHorizontal: 20,
-      marginBottom: 12,
-      gap: 6,
-    },
+    addForm: { marginBottom: 12, gap: 6 },
     formLabel: { fontSize: font.sm, color: colors.t2, marginBottom: 4, marginTop: 6 },
     input: {
       backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
       color: colors.text,
       fontSize: font.base,
     },
     formError: { color: colors.red, fontSize: font.sm, marginTop: 4 },
-    submitBtn: {
-      backgroundColor: colors.blue,
-      borderRadius: radius.md,
-      paddingVertical: 14,
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    submitBtnDisabled: { opacity: 0.6 },
-    submitBtnText: { color: '#fff', fontWeight: '700', fontSize: font.base },
 
     centerPad: { alignItems: 'center', paddingVertical: 20 },
     inlineError: { alignItems: 'center', paddingVertical: 12, gap: 8 },
@@ -583,59 +487,14 @@ const makeStyles = (colors: ThemeColors) =>
 
     aircraftEmpty: { paddingVertical: 20, alignItems: 'center' },
     aircraftEmptyText: { color: colors.t3, fontSize: font.base },
-    aircraftCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 14,
-      marginHorizontal: 20,
-      marginBottom: 8,
-      gap: 12,
-    },
-    aircraftIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.s2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    aircraftIconText: { fontSize: 18 },
-    aircraftInfo: { flex: 1 },
-    aircraftTail: { fontSize: font.base, fontWeight: '700', color: colors.text },
-    aircraftTypeName: { fontSize: font.sm, color: colors.t2, marginTop: 2 },
-    deleteBtn: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.redD,
-      minWidth: 64,
-      alignItems: 'center',
-    },
     deleteBtnText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
-
-    // Sign out
-    signOutBtn: {
-      borderWidth: 1.5,
-      borderColor: colors.redD,
-      borderRadius: radius.md,
-      paddingVertical: 16,
-      alignItems: 'center',
-      marginHorizontal: 20,
-      marginTop: 16,
-    },
-    signOutText: { color: colors.red, fontWeight: '700', fontSize: font.base },
 
     // Privacy + version
     privacyLink: {
       fontSize: 12,
       color: colors.t3,
       textAlign: 'center',
-      marginTop: 16,
+      marginTop: 4,
       textDecorationLine: 'underline',
     },
     versionText: {

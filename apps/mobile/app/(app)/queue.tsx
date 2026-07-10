@@ -7,9 +7,9 @@ import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import { Flame, Plane } from 'lucide-react-native'
-import { font, radius } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
+import { Card, Chip, LargeTitle, StatTile } from '../../src/components/ui'
 
 type FilterStatus = 'all' | 'waiting' | 'confirmed' | 'active' | 'completed'
 
@@ -151,12 +151,7 @@ export default function QueueScreen() {
 
     return (
       <TouchableOpacity
-        style={[
-          styles.queueItem,
-          isMine && styles.queueItemMine,
-          isActive && styles.queueItemActive,
-          isDone && styles.queueItemDone,
-        ]}
+        style={[styles.queueItem, isMine && { backgroundColor: colors.blueG }]}
         onPress={() => handleCardPress(item)}
         activeOpacity={tappable ? 0.75 : 1}
         disabled={!tappable}
@@ -165,14 +160,7 @@ export default function QueueScreen() {
         accessibilityHint={tappable ? 'Tap to view details' : undefined}
       >
         {/* Position panel */}
-        <View
-          style={[
-            styles.posPanel,
-            isMine && styles.posPanelMine,
-            isActive && styles.posPanelActive,
-            isDone && styles.posPanelDone,
-          ]}
-        >
+        <View style={styles.posPanel}>
           <Text style={[styles.posNum, { color: posColor }]}>
             #{item.queuePosition ?? index + 1}
           </Text>
@@ -249,69 +237,54 @@ export default function QueueScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.headerPad}>
-        <Text style={styles.screenTitle}>Preheat Queue</Text>
-        <Text style={styles.screenSub}>
-          {selectedDate === dates[0] ? 'Today' : fmtDate(selectedDate)} · {totalCount} aircraft
-        </Text>
+        <LargeTitle
+          title="Preheat Queue"
+          subtitle={`${selectedDate === dates[0] ? 'Today' : fmtDate(selectedDate)} · ${totalCount} aircraft`}
+        />
       </View>
 
       {/* Filter chips */}
       <View style={styles.chipRow}>
         {(['all', 'waiting', 'active', 'completed'] as FilterStatus[]).map((f) => (
-          <TouchableOpacity
+          <Chip
             key={f}
-            style={[styles.chip, filter === f && styles.chipActive]}
+            active={filter === f}
             onPress={() => setFilter(f)}
-            accessibilityRole="button"
-            accessibilityLabel={`Filter by ${f === 'all' ? 'all statuses' : f === 'waiting' ? 'upcoming' : f}`}
-            accessibilityState={{ selected: filter === f }}
-          >
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>
-              {f === 'all'
+            label={
+              f === 'all'
                 ? 'All'
                 : f === 'waiting'
                   ? 'Upcoming'
                   : f === 'active'
                     ? 'Active'
-                    : 'Done'}
-            </Text>
-          </TouchableOpacity>
+                    : 'Done'
+            }
+          />
         ))}
       </View>
 
       {/* Stats bar */}
       {stats && (
         <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Text style={styles.statItemLabel}>Waiting</Text>
-            <Text style={[styles.statItemNum, { color: colors.yellow }]}>{stats.waiting}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statItemLabel}>Active</Text>
-            <Text style={[styles.statItemNum, { color: colors.orange }]}>{stats.active}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statItemLabel}>Done</Text>
-            <Text style={[styles.statItemNum, { color: colors.green }]}>{stats.completed}</Text>
-          </View>
+          <Card>
+            <View style={styles.statsRow}>
+              <StatTile label="Waiting" value={String(stats.waiting)} tone="yellow" />
+              <StatTile label="Active" value={String(stats.active)} tone="orange" />
+              <StatTile label="Done" value={String(stats.completed)} tone="green" />
+            </View>
+          </Card>
         </View>
       )}
 
       {/* Date chips */}
       <View style={styles.dateRow}>
         {dates.map((d) => (
-          <TouchableOpacity
+          <Chip
             key={d}
-            style={[styles.dateChip, selectedDate === d && styles.dateChipActive]}
+            active={selectedDate === d}
             onPress={() => setSelectedDate(d)}
-            accessibilityRole="button"
-            accessibilityLabel={`Show queue for ${d === 'all' ? 'all dates' : d === dates[1] ? 'today' : fmtDate(d)}`}
-            accessibilityState={{ selected: selectedDate === d }}
-          >
-            <Text style={[styles.dateChipText, selectedDate === d && styles.dateChipTextActive]}>
-              {d === 'all' ? 'All' : d === dates[1] ? 'Today' : fmtDate(d)}
-            </Text>
-          </TouchableOpacity>
+            label={d === 'all' ? 'All' : d === dates[1] ? 'Today' : fmtDate(d)}
+          />
         ))}
       </View>
 
@@ -320,9 +293,9 @@ export default function QueueScreen() {
           <ActivityIndicator color={colors.blue} />
         </View>
       ) : error ? (
-        <View style={styles.errorBox}>
+        <Card style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
-        </View>
+        </Card>
       ) : (
         <FlatList
           data={filtered}
@@ -343,9 +316,7 @@ export default function QueueScreen() {
 const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
-    headerPad: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 2 },
-    screenTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2 },
-    screenSub: { fontSize: 13, color: colors.t2, marginBottom: 14 },
+    headerPad: { paddingHorizontal: 20, paddingTop: 10 },
 
     // Chips
     chipRow: {
@@ -354,99 +325,37 @@ const makeStyles = (colors: ThemeColors) =>
       paddingHorizontal: 20,
       marginBottom: 14,
     },
-    chip: {
-      backgroundColor: colors.s2,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      borderRadius: 99,
-      paddingHorizontal: 14,
-      paddingVertical: 7,
-    },
-    chipActive: { backgroundColor: colors.blueD, borderColor: colors.blue },
-    chipText: { fontSize: 12, fontWeight: '600', color: colors.t2 },
-    chipTextActive: { color: colors.blue },
 
     // Stats bar
-    statsBar: {
-      flexDirection: 'row',
-      gap: 10,
-      paddingHorizontal: 20,
-      marginBottom: 14,
-    },
-    statItem: {
-      flex: 1,
-      backgroundColor: colors.s2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingVertical: 11,
-      paddingHorizontal: 8,
-      alignItems: 'center',
-    },
-    statItemLabel: {
-      fontSize: 10,
-      color: colors.t3,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-    },
-    statItemNum: { fontSize: 22, fontWeight: '800' },
+    statsBar: { paddingHorizontal: 20, marginBottom: 14 },
+    statsRow: { flexDirection: 'row' },
 
     // Date row
     dateRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
-    dateChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: radius.full,
-      backgroundColor: colors.s1,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    dateChipActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-    dateChipText: { fontSize: font.sm, color: colors.t2, fontWeight: '600' },
-    dateChipTextActive: { color: '#fff' },
 
     // Queue item
     queueItem: {
       flexDirection: 'row',
       backgroundColor: colors.s1,
-      borderRadius: radius.md,
-      borderWidth: 1.5,
-      borderColor: colors.border,
+      borderRadius: 18,
       overflow: 'hidden',
       marginBottom: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
     },
-    queueItemMine: {
-      borderColor: colors.blue,
-      backgroundColor: colors.blueD,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.15,
-      shadowRadius: 10,
-      elevation: 3,
-    },
-    queueItemActive: {
-      borderColor: colors.orange,
-      shadowColor: colors.orange,
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    queueItemDone: { borderColor: colors.greenD },
 
     // Position panel
     posPanel: {
-      width: 50,
+      width: 54,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 2,
-      borderRightWidth: 1,
-      borderRightColor: colors.border,
       paddingVertical: 14,
     },
-    posPanelMine: { borderRightColor: colors.blue, backgroundColor: colors.blueG },
-    posPanelActive: { borderRightColor: colors.orange },
-    posPanelDone: { borderRightColor: colors.greenD },
-    posNum: { fontSize: 20, fontWeight: '800' },
+    posNum: { fontSize: 20, fontWeight: '700' },
     posLabel: {
       fontSize: 9,
       fontWeight: '700',
@@ -463,7 +372,7 @@ const makeStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       marginBottom: 2,
     },
-    queueTail: { fontSize: 16, fontWeight: '800', color: colors.text },
+    queueTail: { fontSize: 16, fontWeight: '600', color: colors.text },
     queueMeta: { fontSize: 12, color: colors.t2, marginTop: 2 },
 
     // Status pill
@@ -498,18 +407,14 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       alignSelf: 'flex-start',
       marginTop: 10,
-      shadowColor: colors.orange,
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 3,
     },
     inlineConfirmText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
     // List
-    listContent: { padding: 16, paddingTop: 4, paddingBottom: 40 },
+    listContent: { padding: 16, paddingTop: 4, paddingBottom: 100 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    errorBox: { margin: 16, backgroundColor: colors.redD, borderRadius: radius.md, padding: 16 },
-    errorText: { color: colors.red, fontSize: font.base, textAlign: 'center' },
+    errorBox: { margin: 16, backgroundColor: colors.redD, shadowOpacity: 0, elevation: 0 },
+    errorText: { color: colors.red, fontSize: 14, textAlign: 'center' },
     empty: { alignItems: 'center', paddingVertical: 60 },
-    emptyText: { color: colors.t3, fontSize: font.base },
+    emptyText: { color: colors.t3, fontSize: 14 },
   })

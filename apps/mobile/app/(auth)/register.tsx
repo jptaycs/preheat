@@ -6,16 +6,16 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native'
 import { useRouter, Link } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
-import { radius, font } from '../../src/theme'
+import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
 import { Flame, ArrowLeft } from 'lucide-react-native'
+import { Card, Button, IconGlyph } from '../../src/components/ui'
 
 interface Fields {
   name: string
@@ -96,9 +96,7 @@ export default function RegisterScreen() {
         </Link>
 
         <View style={styles.headerWrap}>
-          <View style={styles.logoBox}>
-            <Flame size={24} color="#fff" />
-          </View>
+          <IconGlyph icon={Flame} tone="blue" size={56} />
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join the Preheat pilot network</Text>
         </View>
@@ -110,95 +108,86 @@ export default function RegisterScreen() {
           </View>
         ) : null}
 
-        {/* Name */}
-        <Field label="FULL NAME" error={errors.name}>
-          <TextInput
-            style={[styles.input, errors.name ? styles.inputError : null]}
-            placeholder="Capt. Marcus Reid"
-            placeholderTextColor={colors.t3}
-            value={fields.name}
-            onChangeText={set('name')}
-            autoComplete="name"
-            returnKeyType="next"
-          />
-        </Field>
+        <Card style={styles.formCard} padded={false}>
+          <Field label="Full name" error={errors.name}>
+            <TextInput
+              style={styles.input}
+              placeholder="Capt. Marcus Reid"
+              placeholderTextColor={colors.t3}
+              value={fields.name}
+              onChangeText={set('name')}
+              autoComplete="name"
+              returnKeyType="next"
+            />
+          </Field>
 
-        {/* Email */}
-        <Field label="EMAIL ADDRESS" error={errors.email}>
-          <TextInput
-            style={[styles.input, errors.email ? styles.inputError : null]}
-            placeholder="pilot@airbase.org"
-            placeholderTextColor={colors.t3}
-            value={fields.email}
-            onChangeText={set('email')}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            returnKeyType="next"
-          />
-        </Field>
+          <Field label="Email address" error={errors.email}>
+            <TextInput
+              style={styles.input}
+              placeholder="pilot@airbase.org"
+              placeholderTextColor={colors.t3}
+              value={fields.email}
+              onChangeText={set('email')}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              returnKeyType="next"
+            />
+          </Field>
 
-        {/* Password */}
-        <Field label="PASSWORD" error={errors.password}>
-          <TextInput
-            style={[styles.input, errors.password ? styles.inputError : null]}
-            placeholder="Min. 8 characters"
-            placeholderTextColor={colors.t3}
-            value={fields.password}
-            onChangeText={set('password')}
-            secureTextEntry
-            textContentType="oneTimeCode"
-            autoComplete="off"
-            returnKeyType="next"
-          />
-        </Field>
+          <Field label="Password" error={errors.password}>
+            <TextInput
+              style={styles.input}
+              placeholder="Min. 8 characters"
+              placeholderTextColor={colors.t3}
+              value={fields.password}
+              onChangeText={set('password')}
+              secureTextEntry
+              textContentType="oneTimeCode"
+              autoComplete="off"
+              returnKeyType="next"
+            />
+          </Field>
 
-        {/* Confirm password */}
-        <Field label="CONFIRM PASSWORD" error={errors.confirmPass}>
-          <TextInput
-            style={[styles.input, errors.confirmPass ? styles.inputError : null]}
-            placeholder="Re-enter password"
-            placeholderTextColor={colors.t3}
-            value={fields.confirmPass}
-            onChangeText={set('confirmPass')}
-            secureTextEntry
-            textContentType="oneTimeCode"
-            autoComplete="off"
-            returnKeyType="next"
-          />
-        </Field>
+          <Field label="Confirm password" error={errors.confirmPass}>
+            <TextInput
+              style={styles.input}
+              placeholder="Re-enter password"
+              placeholderTextColor={colors.t3}
+              value={fields.confirmPass}
+              onChangeText={set('confirmPass')}
+              secureTextEntry
+              textContentType="oneTimeCode"
+              autoComplete="off"
+              returnKeyType="next"
+            />
+          </Field>
 
-        {/* License number (optional) */}
-        <Field label="PILOT LICENSE NUMBER (OPTIONAL)" error={errors.licenseNumber}>
-          <TextInput
-            style={styles.input}
-            placeholder="PPL-US-442819"
-            placeholderTextColor={colors.t3}
-            value={fields.licenseNumber}
-            onChangeText={set('licenseNumber')}
-            autoCapitalize="characters"
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              void handleRegister()
-            }}
-          />
-        </Field>
+          <Field label="Pilot license number (optional)" error={errors.licenseNumber} last>
+            <TextInput
+              style={styles.input}
+              placeholder="PPL-US-442819"
+              placeholderTextColor={colors.t3}
+              value={fields.licenseNumber}
+              onChangeText={set('licenseNumber')}
+              autoCapitalize="characters"
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                void handleRegister()
+              }}
+            />
+          </Field>
+        </Card>
 
         {/* Submit */}
-        <TouchableOpacity
-          style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
+        <Button
+          title="Create Account"
           onPress={() => {
             void handleRegister()
           }}
-          disabled={isLoading}
-          activeOpacity={0.85}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnPrimaryText}>Create Account</Text>
-          )}
-        </TouchableOpacity>
+          loading={isLoading}
+          style={styles.submitBtn}
+        />
 
         <Text style={styles.terms}>
           By creating an account you agree to our{' '}
@@ -214,18 +203,23 @@ function Field({
   label,
   error,
   children,
+  last,
 }: {
   label: string
   error?: string
   children: React.ReactNode
+  last?: boolean
 }) {
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
-      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+    <View>
+      <View style={styles.fieldWrap}>
+        <Text style={styles.label}>{label}</Text>
+        {children}
+        {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+      </View>
+      {!last && <View style={styles.fieldDivider} />}
     </View>
   )
 }
@@ -236,75 +230,37 @@ const makeStyles = (colors: ThemeColors) =>
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 20 },
 
     backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
-    backArrow: { fontSize: font.xl, color: colors.t2 },
     backLabel: { fontSize: font.base, color: colors.t2, fontWeight: '600' },
 
-    headerWrap: { alignItems: 'center', marginBottom: 28 },
-    logoBox: {
-      width: 56,
-      height: 56,
-      borderRadius: 18,
-      backgroundColor: '#1E3D7A',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 12,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      elevation: 6,
-    },
-    logoIcon: { fontSize: 24 },
-    title: { fontSize: font.xxl, fontWeight: '800', color: colors.text, marginBottom: 4 },
+    headerWrap: { alignItems: 'center', marginBottom: 28, gap: 12 },
+    title: { fontSize: font.xxl, fontWeight: '700', color: colors.text },
     subtitle: { fontSize: font.sm, color: colors.t2 },
 
     errorBanner: {
       backgroundColor: colors.redD,
-      borderWidth: 1,
-      borderColor: colors.red,
-      borderRadius: radius.sm,
+      borderRadius: 14,
       padding: 12,
       marginBottom: 16,
     },
     errorBannerText: { color: colors.red, fontSize: font.sm, fontWeight: '600' },
 
-    fieldWrap: { marginBottom: 14 },
+    formCard: { marginBottom: 20 },
+    fieldWrap: { padding: 14 },
+    fieldDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
     label: {
-      fontSize: 11,
-      fontWeight: '700',
+      fontSize: 12,
+      fontWeight: '600',
       color: colors.t2,
       marginBottom: 6,
-      letterSpacing: 0.8,
     },
     input: {
-      backgroundColor: colors.s2,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      borderRadius: radius.sm,
-      paddingHorizontal: 15,
-      paddingVertical: 14,
       color: colors.text,
       fontSize: font.md,
+      padding: 0,
     },
-    inputError: { borderColor: colors.red },
-    fieldError: { fontSize: 12, color: colors.red, marginTop: 4 },
+    fieldError: { fontSize: 12, color: colors.red, marginTop: 6 },
 
-    passwordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
-    passwordInput: { flex: 1, color: colors.text, fontSize: font.md, paddingVertical: 14 },
-    showHide: { fontSize: 12, color: colors.blue, fontWeight: '600', paddingLeft: 8 },
-
-    btnPrimary: {
-      backgroundColor: colors.blue,
-      borderRadius: radius.md,
-      paddingVertical: 18,
-      alignItems: 'center',
-      marginTop: 8,
-      shadowColor: colors.blue,
-      shadowOpacity: 0.35,
-      shadowRadius: 12,
-      elevation: 6,
-    },
-    btnPrimaryText: { color: '#fff', fontSize: font.md, fontWeight: '700' },
-    btnDisabled: { opacity: 0.6 },
+    submitBtn: { marginTop: 4 },
 
     terms: { fontSize: 11, color: colors.t3, textAlign: 'center', marginTop: 16, lineHeight: 18 },
   })
