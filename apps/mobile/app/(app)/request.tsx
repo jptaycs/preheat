@@ -20,6 +20,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  Plane,
 } from 'lucide-react-native'
 import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
@@ -45,6 +46,17 @@ function range(start: number, end: number, pad = 2): string[] {
 const HOURS = range(0, 23)
 const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
 
+function defaultEngineTimeUTC(): { hour: string; minute: string } {
+  const now = new Date()
+  let h = now.getUTCHours()
+  let m = Math.round(now.getUTCMinutes() / 5) * 5
+  if (m === 60) {
+    m = 0
+    h = (h + 1) % 24
+  }
+  return { hour: String(h).padStart(2, '0'), minute: String(m).padStart(2, '0') }
+}
+
 function fmtDateLong(d: Date): string {
   return d.toLocaleDateString(undefined, {
     weekday: 'short',
@@ -63,11 +75,22 @@ export default function RequestScreen() {
 
   const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(null)
+  const [aircraftPickerOpen, setAircraftPickerOpen] = useState(false)
+  const selectedAircraft = useMemo(
+    () => aircraft.find((a) => a.id === selectedAircraftId) ?? null,
+    [aircraft, selectedAircraftId],
+  )
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [showAddAircraftForm, setShowAddAircraftForm] = useState(false)
+  const [newTailNumber, setNewTailNumber] = useState('')
+  const [newAircraftType, setNewAircraftType] = useState('')
+  const [addingAircraft, setAddingAircraft] = useState(false)
+  const [addAircraftError, setAddAircraftError] = useState<string | null>(null)
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date())
   const [dateOpen, setDateOpen] = useState(false)
-  const [hour, setHour] = useState('00')
-  const [minute, setMinute] = useState('00')
+  const [hour, setHour] = useState(() => defaultEngineTimeUTC().hour)
+  const [minute, setMinute] = useState(() => defaultEngineTimeUTC().minute)
 
   const [notes, setNotes] = useState('')
   const [preferredDuration, setPreferredDuration] = useState(20)
@@ -113,6 +136,34 @@ export default function RequestScreen() {
     setUserTouchedDuration(true)
     setPreferredDuration(mins)
   }, [])
+
+  async function handleAddAircraft() {
+    if (!newTailNumber.trim()) {
+      setAddAircraftError('Tail number is required')
+      return
+    }
+    if (!newAircraftType.trim()) {
+      setAddAircraftError('Aircraft type is required')
+      return
+    }
+    setAddingAircraft(true)
+    setAddAircraftError(null)
+    try {
+      const created = await aircraftApi.create({
+        tailNumber: newTailNumber.trim(),
+        type: newAircraftType.trim(),
+      })
+      setAircraft((prev) => [...prev, created])
+      setSelectedAircraftId(created.id)
+      setNewTailNumber('')
+      setNewAircraftType('')
+      setShowAddAircraftForm(false)
+    } catch (err) {
+      setAddAircraftError(err instanceof ApiError ? err.message : 'Failed to add aircraft')
+    } finally {
+      setAddingAircraft(false)
+    }
+  }
 
   async function handleSubmit() {
     setError(null)
@@ -196,37 +247,115 @@ export default function RequestScreen() {
 
         {/* Aircraft picker */}
         <View style={styles.section}>
-          <SectionHeader title="Select aircraft" />
+          <View style={styles.aircraftHeader}>
+            <SectionHeader title="Select aircraft" style={styles.sectionHeaderNoPad} />
+            <TouchableOpacity
+              style={styles.addAircraftBtn}
+              onPress={() => {
+                setShowAddAircraftForm((v) => !v)
+                setAddAircraftError(null)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={showAddAircraftForm ? 'Cancel adding aircraft' : 'Add aircraft'}
+            >
+              <Text style={styles.addAircraftBtnText}>
+                {showAddAircraftForm ? 'Cancel' : '+ Add Aircraft'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {showAddAircraftForm && (
+            <Card style={styles.addForm}>
+              <Text style={styles.formLabel}>Tail Number</Text>
+              <TextInput
+                style={styles.input}
+                value={newTailNumber}
+                onChangeText={setNewTailNumber}
+                placeholder="e.g. N12345"
+                placeholderTextColor={colors.t3}
+                autoCapitalize="characters"
+              />
+              <Text style={styles.formLabel}>Aircraft Type</Text>
+              <TextInput
+                style={styles.input}
+                value={newAircraftType}
+                onChangeText={setNewAircraftType}
+                placeholder="e.g. Cessna 172"
+                placeholderTextColor={colors.t3}
+              />
+              {addAircraftError ? <Text style={styles.formError}>{addAircraftError}</Text> : null}
+              <Button
+                title="Add Aircraft"
+                loading={addingAircraft}
+                onPress={() => void handleAddAircraft()}
+                style={{ marginTop: 8 }}
+              />
+            </Card>
+          )}
+
           {isLoadingAircraft ? (
             <ActivityIndicator color={colors.blue} style={{ marginVertical: 20 }} />
           ) : aircraft.length === 0 ? (
-            <Card style={styles.emptyBox}>
-              <Text style={styles.emptyText}>No aircraft registered.</Text>
-              <TouchableOpacity onPress={() => router.push('/(app)/profile')}>
-                <Text style={styles.emptyLink}>Add aircraft in Profile →</Text>
-              </TouchableOpacity>
-            </Card>
+            !showAddAircraftForm && (
+              <Card style={styles.emptyBox}>
+                <Text style={styles.emptyText}>No aircraft registered.</Text>
+                <TouchableOpacity onPress={() => setShowAddAircraftForm(true)}>
+                  <Text style={styles.emptyLink}>+ Add your first aircraft</Text>
+                </TouchableOpacity>
+              </Card>
+            )
           ) : (
-            aircraft.map((a) => (
+            <Card padded={false}>
               <TouchableOpacity
-                key={a.id}
-                style={[
-                  styles.aircraftCard,
-                  selectedAircraftId === a.id && styles.aircraftCardSelected,
-                ]}
-                onPress={() => setSelectedAircraftId(a.id)}
-                activeOpacity={0.8}
-                accessibilityRole="radio"
-                accessibilityLabel={`${a.tailNumber}, ${a.type}`}
-                accessibilityState={{ selected: selectedAircraftId === a.id }}
+                style={styles.dateFieldRow}
+                onPress={() => setAircraftPickerOpen((v) => !v)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Select aircraft"
+                accessibilityState={{ expanded: aircraftPickerOpen }}
               >
-                <View style={styles.aircraftCardInner}>
-                  <Text style={styles.aircraftTail}>{a.tailNumber}</Text>
-                  <Text style={styles.aircraftType}>{a.type}</Text>
-                </View>
-                {selectedAircraftId === a.id && <Check size={20} color={colors.blue} />}
+                <Plane size={18} color={colors.t2} />
+                {selectedAircraft ? (
+                  <Text style={styles.dateFieldValue} numberOfLines={1}>
+                    {selectedAircraft.tailNumber} · {selectedAircraft.type}
+                  </Text>
+                ) : (
+                  <Text style={styles.dateFieldPlaceholder}>Select aircraft</Text>
+                )}
+                {aircraftPickerOpen ? (
+                  <ChevronUp size={18} color={colors.t2} />
+                ) : (
+                  <ChevronDown size={18} color={colors.t2} />
+                )}
               </TouchableOpacity>
-            ))
+              {aircraftPickerOpen && (
+                <>
+                  <View style={styles.divider} />
+                  {aircraft.map((a, i) => (
+                    <View key={a.id}>
+                      {i > 0 && <View style={styles.optionDivider} />}
+                      <TouchableOpacity
+                        style={styles.aircraftOption}
+                        onPress={() => {
+                          setSelectedAircraftId(a.id)
+                          setAircraftPickerOpen(false)
+                        }}
+                        activeOpacity={0.7}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${a.tailNumber}, ${a.type}`}
+                        accessibilityState={{ selected: selectedAircraftId === a.id }}
+                      >
+                        <View style={styles.aircraftCardInner}>
+                          <Text style={styles.aircraftTail}>{a.tailNumber}</Text>
+                          <Text style={styles.aircraftType}>{a.type}</Text>
+                        </View>
+                        {selectedAircraftId === a.id && <Check size={20} color={colors.blue} />}
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </>
+              )}
+            </Card>
           )}
         </View>
 
@@ -368,6 +497,24 @@ const makeStyles = (colors: ThemeColors) =>
 
     section: { marginBottom: 20 },
 
+    aircraftHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    sectionHeaderNoPad: { marginBottom: 0 },
+    addAircraftBtn: {
+      backgroundColor: colors.blueD,
+      borderRadius: 99,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    addAircraftBtnText: { color: colors.blue, fontSize: font.sm, fontWeight: '600' },
+    addForm: { marginBottom: 12, gap: 6 },
+    formLabel: { fontSize: font.sm, color: colors.t2, marginBottom: 4, marginTop: 6 },
+    formError: { color: colors.red, fontSize: font.sm, marginTop: 4 },
+
     weatherChip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -381,20 +528,16 @@ const makeStyles = (colors: ThemeColors) =>
     },
     weatherChipText: { fontSize: font.sm, color: colors.text, fontWeight: '600' },
 
-    aircraftCard: {
+    aircraftOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.s1,
-      borderRadius: 16,
       padding: 16,
-      marginBottom: 8,
-      shadowColor: '#000',
-      shadowOpacity: 0.06,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 1,
     },
-    aircraftCardSelected: { backgroundColor: colors.blueG },
+    optionDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginHorizontal: 16,
+    },
     aircraftCardInner: { flex: 1 },
     aircraftTail: { fontSize: font.lg, fontWeight: '700', color: colors.text },
     aircraftType: { fontSize: font.sm, color: colors.t2, marginTop: 2 },

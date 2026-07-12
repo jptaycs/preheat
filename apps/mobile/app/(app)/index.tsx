@@ -31,13 +31,8 @@ import {
 import type { LucideIcon } from 'lucide-react-native'
 import { useAuth } from '../../src/context/AuthContext'
 import { useBadge } from '../../src/context/BadgeContext'
-import { preheatRequestsApi, queueApi, weatherApi, aircraftApi, ApiError } from '../../src/lib/api'
-import type {
-  PreheatRequest,
-  QueueResponse,
-  WeatherSnapshot,
-  AircraftItem,
-} from '../../src/lib/api'
+import { preheatRequestsApi, queueApi, weatherApi, ApiError } from '../../src/lib/api'
+import type { PreheatRequest, QueueResponse, WeatherSnapshot } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
@@ -106,23 +101,6 @@ function getActivityIcon(status: string): { Icon: LucideIcon; tone: Tone } {
   }
 }
 
-function fleetStatusLabel(status?: string): string {
-  switch (status) {
-    case 'waiting':
-      return 'Waiting'
-    case 'confirmed':
-      return 'Confirmed'
-    case 'active':
-      return 'Preheating'
-    case 'completed':
-      return 'Done today'
-    case 'cancelled':
-      return 'Cancelled'
-    default:
-      return 'No preheat today'
-  }
-}
-
 export default function DashboardScreen() {
   const { user, logout, devLogin } = useAuth()
   const { setConfirmBadge } = useBadge()
@@ -135,7 +113,6 @@ export default function DashboardScreen() {
   const [myRequests, setMyRequests] = useState<PreheatRequest[]>([])
   const [queue, setQueue] = useState<QueueResponse | null>(null)
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
-  const [aircraft, setAircraft] = useState<AircraftItem[]>([])
   const fetchData = useCallback(async () => {
     try {
       setError(null)
@@ -177,18 +154,6 @@ export default function DashboardScreen() {
       }
     })()
   }, [])
-
-  useEffect(() => {
-    if (user?.role !== 'pilot') return
-    void (async () => {
-      try {
-        const list = await aircraftApi.list()
-        setAircraft(list)
-      } catch {
-        // Soft-fail: fleet list is supplementary on the dashboard.
-      }
-    })()
-  }, [user?.role])
 
   useWebSocket({
     'queue.updated': () => {
@@ -291,31 +256,6 @@ export default function DashboardScreen() {
                 <StatTile label="Done" value={String(queue.stats.completed)} tone="green" />
               </View>
             </Card>
-          </View>
-        )}
-
-        {/* My fleet */}
-        {user?.role === 'pilot' && aircraft.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="My fleet" />
-            <ListGroup>
-              {aircraft.map((a) => {
-                const req = myRequests.find((r) => r.tailNumber === a.tailNumber)
-                const tone = req ? getActivityIcon(req.status).tone : 'neutral'
-                return (
-                  <ListRow
-                    key={a.id}
-                    icon={Plane}
-                    tone={tone}
-                    title={a.tailNumber}
-                    subtitle={a.type}
-                    value={fleetStatusLabel(req?.status)}
-                    showChevron
-                    onPress={() => router.push('/(app)/request')}
-                  />
-                )
-              })}
-            </ListGroup>
           </View>
         )}
 
@@ -478,11 +418,29 @@ export default function DashboardScreen() {
         {__DEV__ && (
           <View style={styles.section}>
             <SectionHeader title="Dev panel" />
-            <ListGroup>
-              <ListRow title="Dev Pilot" onPress={() => void devLogin('pilot')} />
-              <ListRow title="Dev Mechanic" onPress={() => void devLogin('mechanic')} />
-              <ListRow title="Sign Out" destructive onPress={() => void logout()} />
-            </ListGroup>
+            <View style={styles.devRow}>
+              <TouchableOpacity
+                style={styles.devBox}
+                onPress={() => void devLogin('pilot')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.devBoxText}>Dev Pilot</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.devBox}
+                onPress={() => void devLogin('mechanic')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.devBoxText}>Dev Mechanic</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.devBox}
+                onPress={() => void logout()}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.devBoxText, styles.devBoxTextDestructive]}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -683,6 +641,30 @@ const makeStyles = (colors: ThemeColors) =>
     },
     quickLabel: { fontSize: 13, fontWeight: '600', color: colors.text },
     quickSub: { fontSize: 11, color: colors.t3, marginTop: -4 },
+
+    // Dev panel
+    devRow: { flexDirection: 'row', gap: 10 },
+    devBox: {
+      flex: 1,
+      backgroundColor: colors.s1,
+      borderRadius: 18,
+      paddingVertical: 18,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    },
+    devBoxText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    devBoxTextDestructive: { color: colors.red },
 
     // Stats
     statsRow: { flexDirection: 'row' },

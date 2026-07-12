@@ -6,10 +6,10 @@ import { useAuth } from '../../src/context/AuthContext'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
-import { Flame, Plane } from 'lucide-react-native'
+import { Flame, Plane, CalendarDays } from 'lucide-react-native'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
-import { Card, Chip, LargeTitle, StatTile } from '../../src/components/ui'
+import { Card, Chip, LargeTitle, StatTile, Calendar } from '../../src/components/ui'
 
 type FilterStatus = 'all' | 'waiting' | 'confirmed' | 'active' | 'completed'
 
@@ -22,6 +22,18 @@ function addDays(base: Date, days: number): string {
 function fmtDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00')
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function fmtDateShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
+function toISODate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function fmtTime(iso: string): string {
@@ -62,6 +74,7 @@ export default function QueueScreen() {
   const dates = ['all', addDays(today, 0), addDays(today, 1), addDays(today, 2)]
 
   const [selectedDate, setSelectedDate] = useState('all')
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -110,6 +123,7 @@ export default function QueueScreen() {
     }
   }
 
+  const isCustomDate = !dates.includes(selectedDate)
   const entries = queueData?.entries ?? []
   const filtered = filter === 'all' ? entries : entries.filter((e) => e.status === filter)
   const stats = queueData?.stats
@@ -282,11 +296,43 @@ export default function QueueScreen() {
           <Chip
             key={d}
             active={selectedDate === d}
-            onPress={() => setSelectedDate(d)}
+            onPress={() => {
+              setSelectedDate(d)
+              setCalendarOpen(false)
+            }}
             label={d === 'all' ? 'All' : d === dates[1] ? 'Today' : fmtDate(d)}
           />
         ))}
+        <TouchableOpacity
+          style={[styles.calendarChip, isCustomDate && { backgroundColor: colors.blueD }]}
+          onPress={() => setCalendarOpen((v) => !v)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Pick a date"
+          accessibilityState={{ expanded: calendarOpen, selected: isCustomDate }}
+        >
+          <CalendarDays size={15} color={isCustomDate ? colors.blue : colors.t2} />
+          {isCustomDate && (
+            <Text style={[styles.calendarChipText, { color: colors.blue }]}>
+              {fmtDateShort(selectedDate)}
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
+
+      {calendarOpen && (
+        <View style={styles.calendarWrap}>
+          <Card>
+            <Calendar
+              value={isCustomDate ? new Date(selectedDate + 'T00:00:00') : null}
+              onChange={(d) => {
+                setSelectedDate(toISODate(d))
+                setCalendarOpen(false)
+              }}
+            />
+          </Card>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -331,7 +377,24 @@ const makeStyles = (colors: ThemeColors) =>
     statsRow: { flexDirection: 'row' },
 
     // Date row
-    dateRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingBottom: 8,
+    },
+    calendarChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 99,
+      backgroundColor: colors.s2,
+    },
+    calendarChipText: { fontSize: 13.5, fontWeight: '600' },
+    calendarWrap: { paddingHorizontal: 20, paddingBottom: 14 },
 
     // Queue item
     queueItem: {
