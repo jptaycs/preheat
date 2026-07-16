@@ -50,10 +50,11 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-This creates two dev accounts:
+This creates three dev accounts:
 
 - `dev-pilot@preheat.local` / `devpilot123`
 - `dev-mechanic@preheat.local` / `devmechanic123`
+- `dev-admin@preheat.local` / `devadmin123`
 
 ### Start the API
 
@@ -92,7 +93,7 @@ This builds the APK, installs it on the emulator, and starts Metro bundler.
 
 ### Dev login shortcuts
 
-On the login screen, tap **Pilot** or **Mechanic** under "DEV SHORTCUTS" to log in instantly without entering credentials.
+On the login screen, tap **Pilot**, **Mechanic**, or **Admin** under "DEV SHORTCUTS" to log in instantly without entering credentials.
 
 ---
 

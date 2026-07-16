@@ -48,11 +48,11 @@ export default function Settings() {
         </div>
         <div style={s.row}>
           <span style={s.rowLabel}>Confirmation window opens before engine start</span>
-          <span style={s.rowValue}>40 min</span>
+          <span style={s.rowValue}>30 min</span>
         </div>
         <div style={s.row}>
           <span style={s.rowLabel}>Confirmation deadline before engine start</span>
-          <span style={s.rowValue}>30 min</span>
+          <span style={s.rowValue}>15 min</span>
         </div>
         <div style={{ ...s.row, borderBottom: 'none' }}>
           <span style={s.rowLabel}>Preheat duration (estimated)</span>

@@ -108,6 +108,22 @@ const sql = `
       ALTER TABLE preheat_requests ADD COLUMN preferred_duration_minutes INTEGER;
     END IF;
   END $$;
+
+  -- Payments are billed per aircraft (per plane), not per user
+  CREATE TABLE IF NOT EXISTS payments (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    aircraft_id  UUID NOT NULL REFERENCES aircraft(id) ON DELETE CASCADE,
+    session_id   UUID UNIQUE REFERENCES preheat_sessions(id) ON DELETE SET NULL,
+    amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+    status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'waived')),
+    notes        TEXT,
+    paid_at      TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_payments_aircraft_id ON payments(aircraft_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_status      ON payments(status);
 `
 
 try {

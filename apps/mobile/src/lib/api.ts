@@ -91,10 +91,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }
   }
 
-  const data = (await res.json()) as T
+  // 204 No Content (and other empty bodies) have nothing to parse
+  const text = await res.text()
+  const data = (text ? JSON.parse(text) : undefined) as T
   if (!res.ok) {
-    const err = data as { message?: string }
-    throw new ApiError(res.status, err.message ?? 'Something went wrong')
+    const err = data as { message?: string } | undefined
+    throw new ApiError(res.status, err?.message ?? 'Something went wrong')
   }
 
   return data
@@ -276,6 +278,14 @@ export const queueApi = {
     const qs = params?.date ? `?date=${params.date}` : ''
     return request<QueueResponse>(`/queue${qs}`)
   },
+  adjustDuration(body: { date: string; deltaMinutes: number }) {
+    return request<{
+      success: boolean
+      deltaMinutes: number
+      adjustedRequests: number
+      adjustedSessions: number
+    }>('/queue/adjust-duration', { method: 'POST', body })
+  },
 }
 
 // ── Session endpoints ──────────────────────────────────────────────────────────
@@ -307,6 +317,85 @@ export const sessionsApi = {
       `/preheat-sessions/${sessionId}/complete`,
       { method: 'POST' },
     )
+  },
+}
+
+// ── Admin endpoints ────────────────────────────────────────────────────────────
+
+export interface AdminOverview {
+  users: number
+  aircraft: number
+  sessions: number
+  pendingCents: number
+  paidCents: number
+}
+
+export interface AdminUser {
+  id: string
+  name: string
+  email: string
+  role: string
+  licenseNumber: string | null
+  createdAt: string
+}
+
+export interface AdminAircraft {
+  id: string
+  tailNumber: string
+  type: string
+  ownerId: string
+  ownerName: string
+  ownerEmail: string
+  sessionCount: number
+  pendingCents: number
+  paidCents: number
+  createdAt: string
+}
+
+export type PaymentStatus = 'pending' | 'paid' | 'waived'
+
+export interface AdminPayment {
+  id: string
+  aircraftId: string
+  sessionId: string | null
+  amountCents: number
+  status: PaymentStatus
+  notes: string | null
+  paidAt: string | null
+  createdAt: string
+  tailNumber: string
+  aircraftType: string
+  ownerName: string
+}
+
+export const adminApi = {
+  overview() {
+    return request<AdminOverview>('/admin/overview')
+  },
+  users() {
+    return request<AdminUser[]>('/admin/users')
+  },
+  updateUserRole(id: string, role: string) {
+    return request<AdminUser>(`/admin/users/${id}/role`, { method: 'PATCH', body: { role } })
+  },
+  deleteUser(id: string) {
+    return request<void>(`/admin/users/${id}`, { method: 'DELETE' })
+  },
+  aircraft() {
+    return request<AdminAircraft[]>('/admin/aircraft')
+  },
+  payments(params?: { aircraftId?: string; status?: PaymentStatus }) {
+    const qs = new URLSearchParams()
+    if (params?.aircraftId) qs.set('aircraftId', params.aircraftId)
+    if (params?.status) qs.set('status', params.status)
+    const suffix = qs.size > 0 ? `?${qs.toString()}` : ''
+    return request<AdminPayment[]>(`/admin/payments${suffix}`)
+  },
+  createPayment(body: { aircraftId: string; amountCents: number; notes?: string }) {
+    return request<AdminPayment>('/admin/payments', { method: 'POST', body })
+  },
+  updatePayment(id: string, status: PaymentStatus) {
+    return request<AdminPayment>(`/admin/payments/${id}`, { method: 'PATCH', body: { status } })
   },
 }
 

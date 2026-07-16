@@ -1,15 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useAuth } from '../../src/context/AuthContext'
 import { queueApi, preheatRequestsApi, ApiError } from '../../src/lib/api'
 import type { QueueEntry, QueueResponse } from '../../src/lib/api'
 import { useWebSocket } from '../../src/hooks/useWebSocket'
-import { Flame, Plane, CalendarDays } from 'lucide-react-native'
+import { Flame, Plane, CalendarDays, Timer } from 'lucide-react-native'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
-import { Card, Chip, LargeTitle, StatTile, Calendar } from '../../src/components/ui'
+import {
+  Button,
+  Card,
+  Chip,
+  LargeTitle,
+  SectionHeader,
+  StatTile,
+  Calendar,
+} from '../../src/components/ui'
+import { DeltaPicker } from '../../src/components/DeltaPicker'
 
 type FilterStatus = 'all' | 'waiting' | 'confirmed' | 'active' | 'completed'
 
@@ -70,6 +87,7 @@ export default function QueueScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors])
   const STATUS_COLORS = useMemo(() => getStatusColors(colors), [colors])
   const isMechanic = user?.role === 'mechanic'
+  const canAdjustHeat = isMechanic || user?.role === 'admin'
   const today = new Date()
   const dates = ['all', addDays(today, 0), addDays(today, 1), addDays(today, 2)]
 
@@ -80,6 +98,9 @@ export default function QueueScreen() {
   const [error, setError] = useState<string | null>(null)
   const [queueData, setQueueData] = useState<QueueResponse | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [adjustOpen, setAdjustOpen] = useState(false)
+  const [adjustDelta, setAdjustDelta] = useState<number | null>(null)
+  const [adjusting, setAdjusting] = useState(false)
 
   const fetchQueue = useCallback(async (date: string) => {
     try {
@@ -110,6 +131,35 @@ export default function QueueScreen() {
     const interval = setInterval(() => void fetchQueue(selectedDate), 5000)
     return () => clearInterval(interval)
   }, [fetchQueue, selectedDate])
+
+  // Bulk heating-time adjustment (mechanic/admin) — weather changed, shift everyone
+  const adjustTargetDate = selectedDate === 'all' ? toISODate(new Date()) : selectedDate
+
+  function closeAdjust() {
+    setAdjustOpen(false)
+    setAdjustDelta(null)
+  }
+
+  async function handleApplyAdjust() {
+    if (adjustDelta === null || adjustDelta === 0) return
+    setAdjusting(true)
+    try {
+      const res = await queueApi.adjustDuration({
+        date: adjustTargetDate,
+        deltaMinutes: adjustDelta,
+      })
+      closeAdjust()
+      await fetchQueue(selectedDate)
+      Alert.alert(
+        'Heating time adjusted',
+        `${adjustDelta > 0 ? '+' : ''}${adjustDelta} min applied — ${res.adjustedRequests} queued, ${res.adjustedSessions} active.`,
+      )
+    } catch (e) {
+      Alert.alert('Error', e instanceof ApiError ? e.message : 'Could not adjust heating time')
+    } finally {
+      setAdjusting(false)
+    }
+  }
 
   async function handleConfirm(entry: QueueEntry) {
     setConfirming(entry.id)
@@ -254,8 +304,57 @@ export default function QueueScreen() {
         <LargeTitle
           title="Preheat Queue"
           subtitle={`${selectedDate === dates[0] ? 'Today' : fmtDate(selectedDate)} · ${totalCount} aircraft`}
+          trailing={
+            canAdjustHeat ? (
+              <TouchableOpacity
+                style={styles.adjustBtn}
+                onPress={() => setAdjustOpen((v) => !v)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Adjust heating time for all planes"
+                accessibilityState={{ expanded: adjustOpen }}
+              >
+                <Timer size={15} color={colors.orange} />
+                <Text style={styles.adjustBtnText}>Adjust heat</Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
         />
       </View>
+
+      {/* Bulk adjust panel — add/remove minutes for the whole day's queue */}
+      {adjustOpen && (
+        <View style={styles.adjustWrap}>
+          <Card>
+            <SectionHeader title="Adjust heating time" />
+            <Text style={styles.adjustHint}>
+              Weather changed? Add or remove minutes for every queued and active plane on{' '}
+              {fmtDate(adjustTargetDate)}.
+            </Text>
+            <DeltaPicker value={adjustDelta} onChange={setAdjustDelta} />
+            <View style={styles.adjustActions}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={closeAdjust}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title={
+                  adjustDelta
+                    ? `Apply ${adjustDelta > 0 ? '+' : ''}${adjustDelta} min to all`
+                    : 'Apply to all'
+                }
+                tone="orange"
+                disabled={adjustDelta === null}
+                loading={adjusting}
+                onPress={() => void handleApplyAdjust()}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        </View>
+      )}
 
       {/* Filter chips */}
       <View style={styles.chipRow}>
@@ -363,6 +462,19 @@ const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
     headerPad: { paddingHorizontal: 20, paddingTop: 10 },
+    adjustBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: colors.orangeD,
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    adjustBtnText: { fontSize: 12.5, fontWeight: '700', color: colors.orange },
+    adjustWrap: { paddingHorizontal: 20, paddingBottom: 14 },
+    adjustHint: { fontSize: 13, color: colors.t2, lineHeight: 18, marginBottom: 12 },
+    adjustActions: { flexDirection: 'row', gap: 10 },
 
     // Chips
     chipRow: {

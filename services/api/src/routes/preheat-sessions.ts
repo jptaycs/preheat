@@ -17,6 +17,9 @@ const addReadingBody = z.object({
 
 const mechanic = requireRole('mechanic')
 
+// Flat service fee billed to the aircraft when a preheat completes
+const PREHEAT_FEE_CENTS = Number(process.env.PREHEAT_FEE_CENTS ?? 2500)
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function preheatSessionRoutes(app: FastifyInstance) {
   // All session routes require authentication
@@ -236,8 +239,9 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
         pilot_id: string
         engine_start_time: string
         tail_number: string
+        aircraft_id: string
       }>(
-        `SELECT r.request_date, r.pilot_id, r.engine_start_time, a.tail_number
+        `SELECT r.request_date, r.pilot_id, r.engine_start_time, a.tail_number, a.id AS aircraft_id
          FROM preheat_requests r
          JOIN aircraft a ON a.id = r.aircraft_id
          WHERE r.id = $1`,
@@ -247,6 +251,19 @@ export async function preheatSessionRoutes(app: FastifyInstance) {
       const preheatReq = reqResult.rows[0]
 
       if (preheatReq) {
+        // Bill the preheat to the aircraft (payment per plane, not per user)
+        await db.query(
+          `INSERT INTO payments (aircraft_id, session_id, amount_cents, notes)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (session_id) DO NOTHING`,
+          [
+            preheatReq.aircraft_id,
+            req.params.id,
+            PREHEAT_FEE_CENTS,
+            `Preheat service — ${preheatReq.tail_number}`,
+          ],
+        )
+
         broadcast(app, 'session.completed', {
           sessionId: req.params.id,
           requestId: request_id,

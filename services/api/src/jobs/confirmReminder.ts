@@ -13,7 +13,9 @@ export function startConfirmReminderJob(app: FastifyInstance) {
   async function run() {
     try {
       // Find 'waiting' requests whose confirmation window JUST opened
-      // (opens within the past 90 seconds to catch the 60s polling gap)
+      // (opens within the past 90 seconds to catch the 60s polling gap).
+      // GREATEST(created_at) also catches requests booked with the window
+      // already open (short-notice bookings) so they still get notified.
       const openRequests = await db.query<{
         id: string
         pilot_id: string
@@ -26,7 +28,7 @@ export function startConfirmReminderJob(app: FastifyInstance) {
          JOIN aircraft a ON a.id = r.aircraft_id
          WHERE r.status = 'waiting'
            AND r.confirm_opens_at <= NOW()
-           AND r.confirm_opens_at >= NOW() - INTERVAL '90 seconds'`,
+           AND GREATEST(r.confirm_opens_at, r.created_at) >= NOW() - INTERVAL '90 seconds'`,
       )
 
       for (const req of openRequests.rows) {

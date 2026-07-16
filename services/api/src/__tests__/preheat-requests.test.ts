@@ -105,7 +105,9 @@ describe('slot spacing enforcement', () => {
 
 describe('confirmation window validation', () => {
   it('correctly identifies a request inside the confirmation window', () => {
-    const engineStart = new Date(Date.now() + 35 * 60_000) // 35 min from now
+    // Midpoint of the confirmation window, so the test tracks the config constants
+    const midWindowMin = (CONFIRM_OPENS_MIN + CONFIRM_DEADLINE_MIN) / 2
+    const engineStart = new Date(Date.now() + midWindowMin * 60_000)
     const confirmOpensAt = subMinutes(engineStart, CONFIRM_OPENS_MIN)
     const confirmDeadline = subMinutes(engineStart, CONFIRM_DEADLINE_MIN)
     const now = new Date()

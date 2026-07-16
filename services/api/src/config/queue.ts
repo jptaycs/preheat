@@ -10,11 +10,12 @@ export const PREHEAT_DURATION_MIN = 20
 /** Minimum gap in minutes between consecutive engine start times (Rule #2) */
 export const SLOT_SPACING_MIN = 15
 
-/** Confirmation window opens this many minutes before engine start (Rule #3) */
-export const CONFIRM_OPENS_MIN = 40
+/** Confirmation window opens this many minutes before engine start (Rule #3).
+ *  The pilot is push-notified the moment the window opens. */
+export const CONFIRM_OPENS_MIN = 30
 
 /** Confirmation deadline: must confirm before this many minutes before engine start (Rule #3) */
-export const CONFIRM_DEADLINE_MIN = 30
+export const CONFIRM_DEADLINE_MIN = 15
 
 /** UTC hour at which booking opens for the next day (Rule #1) */
 export const BOOKING_OPENS_HOUR = 19

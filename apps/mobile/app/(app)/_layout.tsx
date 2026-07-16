@@ -2,9 +2,10 @@ import { Tabs } from 'expo-router'
 import { View, StyleSheet } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { useTheme } from '../../src/context/ThemeContext'
-import { Home, ListOrdered, Bell, User } from 'lucide-react-native'
+import { Home, ListOrdered, Bell, User, ShieldCheck } from 'lucide-react-native'
 import type { LucideIcon } from 'lucide-react-native'
 import { useBadge } from '../../src/context/BadgeContext'
+import { useAuth } from '../../src/context/AuthContext'
 
 function TabIcon({ Icon, focused }: { Icon: LucideIcon; focused: boolean }) {
   const { colors } = useTheme()
@@ -24,6 +25,8 @@ const hiddenTab = { tabBarButton: () => null, tabBarItemStyle: { display: 'none'
 export default function AppLayout() {
   const { alertBadge, confirmBadge } = useBadge()
   const { colors, isLight } = useTheme()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   return (
     <Tabs
@@ -63,6 +66,14 @@ export default function AppLayout() {
         options={{
           title: 'Queue',
           tabBarIcon: ({ focused }) => <TabIcon Icon={ListOrdered} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarIcon: ({ focused }) => <TabIcon Icon={ShieldCheck} focused={focused} />,
+          ...(isAdmin ? {} : hiddenTab),
         }}
       />
       <Tabs.Screen

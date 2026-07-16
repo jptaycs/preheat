@@ -16,11 +16,20 @@ interface User {
   }
 }
 
+export type LoginRole = 'pilot' | 'mechanic' | 'admin'
+
+// Accounts that may sign in under each login-role choice
+const ROLE_MATCHES: Record<LoginRole, string[]> = {
+  pilot: ['pilot'],
+  mechanic: ['mechanic', 'dispatcher'],
+  admin: ['admin'],
+}
+
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, asRole?: LoginRole) => Promise<void>
   register: (payload: {
     name: string
     email: string
@@ -28,7 +37,7 @@ interface AuthContextValue {
     licenseNumber?: string
   }) => Promise<void>
   logout: () => Promise<void>
-  devLogin: (role: 'pilot' | 'mechanic') => Promise<void>
+  devLogin: (role: 'pilot' | 'mechanic' | 'admin') => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -54,10 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })()
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, asRole?: LoginRole) => {
     const { accessToken, refreshToken } = await authApi.login({ email, password })
     await storage.setTokens(accessToken, refreshToken)
     const me = await authApi.me()
+    if (asRole && !ROLE_MATCHES[asRole].includes(me.role)) {
+      await storage.clearTokens()
+      throw new ApiError(
+        403,
+        `This account is registered as ${me.role}. Select the ${me.role === 'dispatcher' ? 'mechanic' : me.role} role to sign in.`,
+      )
+    }
     setUser(me)
   }, [])
 
@@ -81,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
-  const devLogin = useCallback(async (role: 'pilot' | 'mechanic') => {
+  const devLogin = useCallback(async (role: 'pilot' | 'mechanic' | 'admin') => {
     const devUsers: Record<string, User> = {
       pilot: {
         id: 'dev-pilot-001',
@@ -97,6 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: 'mechanic',
         licenseNumber: null,
       },
+      admin: {
+        id: 'dev-admin-001',
+        name: 'Dev Admin',
+        email: 'dev-admin@preheat.local',
+        role: 'admin',
+        licenseNumber: null,
+      },
     }
 
     // Try real API first, fall back to offline dev user
@@ -104,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const creds = {
         pilot: { email: 'dev-pilot@preheat.local', password: 'devpilot123' },
         mechanic: { email: 'dev-mechanic@preheat.local', password: 'devmechanic123' },
+        admin: { email: 'dev-admin@preheat.local', password: 'devadmin123' },
       }
       const { accessToken, refreshToken } = await authApi.login(creds[role])
       await storage.setTokens(accessToken, refreshToken)

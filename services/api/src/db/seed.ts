@@ -17,6 +17,13 @@ const DEV_USERS = [
     role: 'mechanic',
     licenseNumber: null,
   },
+  {
+    name: 'Dev Admin',
+    email: 'dev-admin@preheat.local',
+    password: 'devadmin123',
+    role: 'admin',
+    licenseNumber: null,
+  },
 ]
 
 const DEV_PILOT_AIRCRAFT = [

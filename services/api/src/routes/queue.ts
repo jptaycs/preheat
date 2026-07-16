@@ -1,9 +1,21 @@
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { db } from '../db/client.js'
 import { authenticate, requireRole } from '../middleware/authenticate.js'
 import { broadcast } from '../lib/broadcast.js'
+import { DEFAULT_DURATION_MIN, MIN_DURATION_MIN, MAX_DURATION_MIN } from '../config/queue.js'
 
 const mechanic = requireRole('mechanic')
+
+const adjustDurationBody = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  deltaMinutes: z
+    .number()
+    .int()
+    .min(-30)
+    .max(30)
+    .refine((v) => v !== 0, 'deltaMinutes must not be zero'),
+})
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function queueRoutes(app: FastifyInstance) {
@@ -147,5 +159,63 @@ export async function queueRoutes(app: FastifyInstance) {
 
     broadcast(app, 'queue.updated', { requestDate: row.request_date })
     return reply.status(200).send({ success: true })
+  })
+
+  // POST /queue/adjust-duration — bulk-adjust heating time for a whole day's queue
+  // (weather changed: add or remove minutes for every queued plane at once)
+  app.post('/adjust-duration', { preHandler: [mechanic] }, async (req, reply) => {
+    const parsed = adjustDurationBody.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: parsed.error.errors[0]?.message ?? 'Invalid input',
+      })
+    }
+    const { date, deltaMinutes } = parsed.data
+
+    // Queued planes: bump the planned duration (clamped) and move the heating
+    // start so the aircraft is still ready by its engine start time.
+    const requests = await db.query<{ id: string }>(
+      `UPDATE preheat_requests
+       SET preferred_duration_minutes =
+             LEAST(GREATEST(COALESCE(preferred_duration_minutes, $3) + $1, $4), $5),
+           assigned_time = engine_start_time
+             - make_interval(mins =>
+                 LEAST(GREATEST(COALESCE(preferred_duration_minutes, $3) + $1, $4), $5)),
+           updated_at = NOW()
+       WHERE request_date = $2
+         AND status IN ('waiting', 'confirmed')
+       RETURNING id`,
+      [deltaMinutes, date, DEFAULT_DURATION_MIN, MIN_DURATION_MIN, MAX_DURATION_MIN],
+    )
+
+    // Planes already heating: extend/shorten the running session timer.
+    const sessions = await db.query<{ id: string; duration_minutes: number }>(
+      `UPDATE preheat_sessions s
+       SET duration_minutes = LEAST(GREATEST(s.duration_minutes + $1, $3), $4),
+           updated_at = NOW()
+       FROM preheat_requests r
+       WHERE r.id = s.request_id
+         AND r.request_date = $2
+         AND s.completed_at IS NULL
+       RETURNING s.id, s.duration_minutes`,
+      [deltaMinutes, date, MIN_DURATION_MIN, MAX_DURATION_MIN],
+    )
+
+    for (const s of sessions.rows) {
+      broadcast(app, 'timer.updated', {
+        sessionId: s.id,
+        durationMinutes: s.duration_minutes,
+      })
+    }
+    broadcast(app, 'queue.updated', { requestDate: date })
+
+    return reply.send({
+      success: true,
+      deltaMinutes,
+      adjustedRequests: requests.rowCount ?? 0,
+      adjustedSessions: sessions.rowCount ?? 0,
+    })
   })
 }

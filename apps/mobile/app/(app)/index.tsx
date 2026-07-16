@@ -435,6 +435,13 @@ export default function DashboardScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.devBox}
+                onPress={() => void devLogin('admin')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.devBoxText}>Dev Admin</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.devBox}
                 onPress={() => void logout()}
                 activeOpacity={0.7}
               >

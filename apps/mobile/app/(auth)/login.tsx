@@ -12,17 +12,25 @@ import { Link } from 'expo-router'
 import { useMemo, useState } from 'react'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { useAuth, ApiError } from '../../src/context/AuthContext'
+import type { LoginRole } from '../../src/context/AuthContext'
 import { font } from '../../src/theme'
 import type { ThemeColors } from '../../src/theme'
 import { useTheme } from '../../src/context/ThemeContext'
-import { Flame, Plane, Fingerprint, Wrench, Zap } from 'lucide-react-native'
+import { Flame, Plane, Fingerprint, Wrench, Zap, ShieldCheck } from 'lucide-react-native'
 import { Card, Button, Chip, IconGlyph } from '../../src/components/ui'
+
+const ROLE_OPTIONS: Array<{ key: LoginRole; label: string; subtitle: string }> = [
+  { key: 'pilot', label: 'Pilot', subtitle: 'Sign in to your pilot account' },
+  { key: 'mechanic', label: 'Mechanic', subtitle: 'Sign in to your mechanic account' },
+  { key: 'admin', label: 'Admin', subtitle: 'Sign in to your admin account' },
+]
 
 export default function LoginScreen() {
   const { login, devLogin } = useAuth()
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
 
+  const [role, setRole] = useState<LoginRole>('pilot')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -42,7 +50,7 @@ export default function LoginScreen() {
     setIsLoading(true)
     setErrors({})
     try {
-      await login(email.trim(), password)
+      await login(email.trim(), password, role)
       // Guard in _layout.tsx handles navigation when isAuthenticated becomes true
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Something went wrong. Try again.'
@@ -81,12 +89,19 @@ export default function LoginScreen() {
         <View style={styles.logoWrap}>
           <IconGlyph icon={Flame} tone="blue" size={64} />
           <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to your pilot account</Text>
+          <Text style={styles.subtitle}>{ROLE_OPTIONS.find((r) => r.key === role)?.subtitle}</Text>
         </View>
 
-        {/* Role pill */}
+        {/* Role choice */}
         <View style={styles.pillRow}>
-          <Chip label="Pilot" active />
+          {ROLE_OPTIONS.map((r) => (
+            <Chip
+              key={r.key}
+              label={r.label}
+              active={role === r.key}
+              onPress={() => setRole(r.key)}
+            />
+          ))}
         </View>
 
         {/* General error */}
@@ -196,6 +211,14 @@ export default function LoginScreen() {
                 <Wrench size={14} color={colors.orange} />
                 <Text style={[styles.devBtnText, { color: colors.orange }]}>Mechanic</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.devBtn, { backgroundColor: colors.greenD }]}
+                onPress={() => void devLogin('admin')}
+                activeOpacity={0.75}
+              >
+                <ShieldCheck size={14} color={colors.green} />
+                <Text style={[styles.devBtnText, { color: colors.green }]}>Admin</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -213,7 +236,12 @@ const makeStyles = (colors: ThemeColors) =>
     title: { fontSize: font.xxl, fontWeight: '700', color: colors.text },
     subtitle: { fontSize: font.sm, color: colors.t2 },
 
-    pillRow: { alignItems: 'center', marginBottom: 24 },
+    pillRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
+      marginBottom: 24,
+    },
 
     errorBanner: {
       backgroundColor: colors.redD,

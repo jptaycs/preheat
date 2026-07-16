@@ -53,7 +53,7 @@ At small airports, a single shared heater serves a dozen pilots on cold mornings
 
 KEY FEATURES
 • Reserve a preheat slot from your phone — booking opens at 19:00 local the evening before, with automatic 15-min spacing between requests
-• Confirm attendance in the 30-to-40-minute window before your slot — no confirmation, no preheat, no line-jumping
+• Confirm attendance in the 15-to-30-minute window before your slot — no confirmation, no preheat, no line-jumping
 • Live temperature tracking — watch your engine warm up in real time
 • Push notifications for slot opening, confirmation window, completion, and queue changes
 • Multiple aircraft per pilot — register all your tail numbers once
@@ -127,7 +127,7 @@ At small airports, a single shared heater serves a dozen pilots on cold mornings
 
 KEY FEATURES
 ★ Reserve a preheat slot from your phone — booking opens at 19:00 local the evening before, 15-min spacing
-★ Confirm attendance in the 30-to-40-min window before your slot — no confirmation, no preheat
+★ Confirm attendance in the 15-to-30-min window before your slot — no confirmation, no preheat
 ★ Live engine temperature tracking
 ★ Push notifications for slot opening, confirmation window, completion, and queue changes
 ★ Multiple aircraft per pilot
